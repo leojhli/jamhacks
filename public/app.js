@@ -114,8 +114,6 @@ function renderProfile() {
   $('#profileButton').setAttribute('aria-expanded', String(state.profileOpen));
   $('#signedInProfile').hidden = !state.signedIn;
   $('#signedOutProfile').hidden = state.signedIn;
-  $('#demoModeBtn').textContent = state.demoMode ? 'Demo Mode' : 'Live Mode';
-  $('#demoModeBtn').setAttribute('aria-pressed', String(state.demoMode));
 }
 
 function renderTonightProgress() {
@@ -233,7 +231,6 @@ function emptyPlan() {
       <div>
         <div class="eyebrow">Waiting for inputs</div>
         <h2>Your plan will appear here.</h2>
-        <p>For the demo, choose 60 minutes, Tired, and Stay on Track.</p>
       </div>
     </div>
   `;
@@ -441,7 +438,6 @@ function renderCalendarPage() {
 function renderSettingsPage() {
   main.innerHTML = pageShell('Settings', 'Choose how The Hub works for you.', `
     <div class="settings-grid">
-      ${settingRow('Demo Mode', 'Use sample assignments and deadlines.', 'demo')}
       ${settingRow('Google connection status', 'Google sync is not connected.', 'google')}
       ${settingRow('Academic integrity mode', 'The Hub plans and teaches starts. It does not produce submissions.', 'integrity')}
       <div class="setting-row">
@@ -636,12 +632,6 @@ $('#profileButton').addEventListener('click', () => {
   renderProfile();
   renderCoach();
 });
-$('#demoModeBtn').addEventListener('click', () => {
-  state.demoMode = !state.demoMode;
-  state.settings.demo = state.demoMode;
-  toast(state.demoMode ? 'Demo Mode enabled' : 'Live Mode placeholder');
-  render();
-});
 $('#notifyBtn').addEventListener('click', () => toast('No new alerts. Chemistry still needs attention tonight.'));
 $('#syncGoogleBtn').addEventListener('click', async () => {
   await api('/sync/google-classroom', { method: 'POST', body: '{}' });
@@ -656,12 +646,6 @@ $('#signInBtn').addEventListener('click', () => {
   state.signedIn = true;
   state.profileOpen = false;
   toast('Demo sign-in restored');
-  render();
-});
-$('#continueDemoBtn').addEventListener('click', () => {
-  state.demoMode = true;
-  state.profileOpen = false;
-  toast('Continuing in Demo Mode');
   render();
 });
 $('#coachFab').addEventListener('click', () => {

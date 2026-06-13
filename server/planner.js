@@ -58,27 +58,70 @@ function buildPlan(input = {}) {
     .filter((item) => item.work)
     .sort((a, b) => b.score - a.score);
 
-  let remaining = availableMinutes;
   const plan = [];
+  const selectedItems = [];
+  let remainingForSelection = availableMinutes;
+  let totalRequested = 0;
 
   for (const item of ranked) {
-    if (plan.length >= energy.maxItems || remaining < 10) break;
+    if (selectedItems.length >= energy.maxItems || remainingForSelection < 10) break;
     if (recovery && item.assignment.zone === 'Safe') continue;
     if (input.goal !== 'get_ahead' && item.assignment.id === 'world-midterm' && availableMinutes < 90) continue;
+    
     const requested = Math.round(item.work.minutes / energy.pace);
-    const minutes = Math.min(remaining, Math.max(10, requested));
-    plan.push({
-      id: item.assignment.id,
-      title: item.work.title,
-      course: item.work.course,
-      minutes,
-      priority: item.score > 120 ? 'Critical' : item.score > 90 ? 'High' : item.score > 65 ? 'Medium' : 'Low',
-      reason: item.work.outcome,
-      startStep: item.work.startStep,
-      basedOn: item.work.basedOn,
-      zone: item.assignment.zone
-    });
-    remaining -= minutes;
+    selectedItems.push({ item, requested });
+    totalRequested += requested;
+    remainingForSelection -= requested;
+  }
+
+  if (selectedItems.length > 0) {
+    let unallocated = availableMinutes;
+
+    for (const sel of selectedItems) {
+      let alloc = Math.round((sel.requested / totalRequested) * availableMinutes / 5) * 5;
+      if (alloc < 10) alloc = 10;
+      sel.minutes = alloc;
+      unallocated -= alloc;
+    }
+
+    let i = 0;
+    let iterations = 0;
+    while (unallocated !== 0 && iterations < 100) {
+      iterations++;
+      let idx = i % selectedItems.length;
+      if (unallocated > 0) {
+        selectedItems[idx].minutes += 5;
+        unallocated -= 5;
+      } else if (unallocated < 0) {
+        let maxIdx = 0;
+        for (let j = 1; j < selectedItems.length; j++) {
+          if (selectedItems[j].minutes > selectedItems[maxIdx].minutes) {
+            maxIdx = j;
+          }
+        }
+        if (selectedItems[maxIdx].minutes > 10) {
+          selectedItems[maxIdx].minutes -= 5;
+          unallocated += 5;
+        } else {
+          break;
+        }
+      }
+      i++;
+    }
+
+    for (const sel of selectedItems) {
+      plan.push({
+        id: sel.item.assignment.id,
+        title: sel.item.work.title,
+        course: sel.item.work.course,
+        minutes: sel.minutes,
+        priority: sel.item.score > 120 ? 'Critical' : sel.item.score > 90 ? 'High' : sel.item.score > 65 ? 'Medium' : 'Low',
+        reason: sel.item.work.outcome,
+        startStep: sel.item.work.startStep,
+        basedOn: sel.item.work.basedOn,
+        zone: sel.item.assignment.zone
+      });
+    }
   }
 
   const next = plan[0];
