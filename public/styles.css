@@ -84,7 +84,7 @@ summary:focus-visible {
 #app {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 258px minmax(0, 1fr);
+  grid-template-columns: 276px minmax(0, 1fr);
 }
 
 /* ============================================================
@@ -163,6 +163,7 @@ summary:focus-visible {
   background: transparent;
   text-align: left;
   font-weight: 700;
+  white-space: nowrap;
   transition: transform .14s ease-out, background .14s ease-out, border-color .14s ease-out;
 }
 .nav-button:hover { background: rgba(255,255,255,.08); transform: translateX(4px); }
@@ -173,8 +174,13 @@ summary:focus-visible {
   border-color: rgba(255,255,255,.28);
 }
 .nav-button.active span:last-child {
-  text-decoration: underline wavy var(--note-yellow);
-  text-underline-offset: 5px;
+  padding: 2px 5px;
+  border-radius: 2px;
+  color: var(--ink);
+  background: var(--note-yellow);
+  box-shadow: 2px 0 0 var(--note-yellow), -2px 0 0 var(--note-yellow);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 .nav-icon {
   width: 28px;
