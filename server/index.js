@@ -2,7 +2,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const { profile, assignments, learningGaps, calendar } = require('./demoData');
+const { profile, calendar } = require('./demoData');
+const { getAssignmentCards, getAssignmentDetail, getLearningGaps } = require('./academicData');
 const { buildPlan, coach } = require('./planner');
 
 const root = path.resolve(__dirname, '..');
@@ -84,15 +85,15 @@ async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { ok: true });
   if (req.method === 'GET' && url.pathname === '/api/profile') return send(res, 200, profile);
   if (req.method === 'GET' && url.pathname === '/api/bootstrap') {
-    return send(res, 200, { profile, assignments, gaps: learningGaps, calendar });
+    return send(res, 200, { profile, assignments: getAssignmentCards(), gaps: getLearningGaps(), calendar });
   }
-  if (req.method === 'GET' && url.pathname === '/api/assignments') return send(res, 200, assignments);
+  if (req.method === 'GET' && url.pathname === '/api/assignments') return send(res, 200, getAssignmentCards());
   if (req.method === 'GET' && url.pathname.startsWith('/api/assignments/')) {
     const id = decodeURIComponent(url.pathname.split('/').pop());
-    const assignment = assignments.find((item) => item.id === id);
+    const assignment = getAssignmentDetail(id);
     return assignment ? send(res, 200, assignment) : notFound(res);
   }
-  if (req.method === 'GET' && url.pathname === '/api/learning-gaps') return send(res, 200, learningGaps);
+  if (req.method === 'GET' && url.pathname === '/api/learning-gaps') return send(res, 200, getLearningGaps());
   if (req.method === 'GET' && url.pathname === '/api/calendar') return send(res, 200, calendar);
   if (req.method === 'POST' && url.pathname === '/api/plan-night') {
     const body = await readBody(req);

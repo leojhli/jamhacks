@@ -8,6 +8,8 @@ const state = {
   plan: null,
   loadingPlan: false,
   assignments: [],
+  assignmentDetails: {},
+  assignmentLoading: false,
   gaps: [],
   calendar: [],
   startedActivities: [],
@@ -17,7 +19,7 @@ const state = {
   profileOpen: false,
   coachOpen: false,
   coachMessages: [
-    { role: 'assistant', text: 'Tell me your time and energy. I will help you lower pressure without doing the work for you.' }
+    { role: 'assistant', text: 'How much time do you have, and how tired are you?' }
   ],
   settings: {
     demo: true,
@@ -40,14 +42,14 @@ const energyOptions = [
   ['focused', 'Focused'],
   ['normal', 'Normal'],
   ['tired', 'Tired'],
-  ['essentials_only', 'Essentials only']
+  ['bare_minimum', 'Bare Minimum']
 ];
 
 const goalOptions = [
-  ['stay_on_track', 'Stay on track'],
-  ['catch_up', 'Catch up'],
-  ['improve_test_readiness', 'Improve test readiness'],
-  ['minimum_viable_night', 'Minimum viable night']
+  ['stay_on_track', 'Stay on Track'],
+  ['catch_up', 'Catch Up'],
+  ['get_ahead', 'Get Ahead'],
+  ['minimum_viable_night', 'Minimum Viable Night']
 ];
 
 const coachPrompts = [
@@ -92,6 +94,10 @@ function tone(value) {
 
 function chip(text, extra = '') {
   return `<span class="chip ${extra || tone(text)}">${text}</span>`;
+}
+
+function formatDate(date) {
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`));
 }
 
 function renderNav() {
@@ -167,13 +173,13 @@ function renderPlanPage() {
       <div class="hero">
         <div class="hero-inner">
           <div>
-            <div class="eyebrow">Know what to do next</div>
+            <div class="eyebrow">Tonight</div>
             <h1>Plan My Night</h1>
-            <p>Tell The Hub how much time and energy you have. We will turn deadlines, weak topics, and pressure into the smartest plan for tonight.</p>
+            <p>Choose your time, energy, and goal. Get a plan you can finish.</p>
           </div>
           <div class="decision-card">
-            <div class="eyebrow" style="color:#8cf0de">Tonight's decision</div>
-            <h2 style="margin:10px 0 0">Stop guessing. Start the right thing.</h2>
+            <div class="eyebrow" style="color:#8cf0de">Start here</div>
+            <h2 style="margin:10px 0 0">Chemistry first.</h2>
             <div class="decision-mini">
               <strong>What needs attention</strong>
               <small>Chemistry needs a short start before the week gets harder.</small>
@@ -208,12 +214,17 @@ function renderPlanPage() {
               ${goalOptions.map(([id, label]) => optionButton(id, label, state.goal === id, 'goal')).join('')}
             </div>
           </fieldset>
-          <button class="primary-button wide" type="submit" ${state.loadingPlan ? 'disabled aria-busy="true"' : ''}>${state.loadingPlan ? 'Generating...' : 'Generate My Plan'}</button>
+          <button class="primary-button wide" type="submit" ${state.loadingPlan ? 'disabled aria-busy="true"' : ''}>${state.loadingPlan ? 'Building...' : 'Build My Plan'}</button>
         </form>
         <div class="output-stack" aria-live="polite" aria-busy="${state.loadingPlan}">${output}</div>
       </div>
     </section>
   `;
+
+  const planContext = main.querySelector('.plan-context');
+  if (planContext) {
+    main.querySelector('.panel-grid')?.append(planContext);
+  }
 }
 
 function emptyPlan() {
@@ -222,7 +233,7 @@ function emptyPlan() {
       <div>
         <div class="eyebrow">Waiting for inputs</div>
         <h2>Your plan will appear here.</h2>
-        <p>For the demo, choose 60 minutes, Tired, and Stay on track.</p>
+        <p>For the demo, choose 60 minutes, Tired, and Stay on Track.</p>
       </div>
     </div>
   `;
@@ -251,7 +262,7 @@ function planOutput(result) {
 
   return `
     <div class="next-action">
-      <div class="eyebrow" style="color:#8cf0de">Next Best Action</div>
+      <div class="eyebrow" style="color:#8cf0de">Start here</div>
       <h2>${result.nextBestAction.title}</h2>
       <p><strong>${result.nextBestAction.minutes} minutes</strong> - ${result.nextBestAction.why}</p>
       <button class="ghost-button" data-start-activity="${result.plan[0].id}" data-start-step="${escapeAttr(result.justStart.step)}" type="button" aria-pressed="${state.startedActivities.includes(result.plan[0].id)}">${state.startedActivities.includes(result.plan[0].id) ? 'Started' : 'Just Start'}</button>
@@ -305,13 +316,18 @@ function escapeAttr(text) {
 
 function renderRadarPage() {
   if (!state.selectedAssignment && state.assignments.length) state.selectedAssignment = state.assignments[0].id;
-  const selected = state.assignments.find((item) => item.id === state.selectedAssignment) || state.assignments[0];
-  main.innerHTML = pageShell('Assignment Radar', 'Every card shows pressure, next action, and what could go wrong.', `
+  const selected = state.assignmentDetails[state.selectedAssignment];
+  const panel = state.assignmentLoading
+    ? '<div class="card detail-panel"><div class="skeleton" style="height:360px"></div></div>'
+    : selected
+      ? assignmentDetail(selected)
+      : '<div class="card detail-panel">Select an assignment to view its intelligence.</div>';
+  main.innerHTML = pageShell('Assignment Radar', 'See what is due, what is risky, and what to do next.', `
     <div class="assignment-grid">
       <div class="assignment-list">
-        ${state.assignments.map((item) => assignmentCard(item, selected && selected.id === item.id)).join('')}
+        ${state.assignments.map((item) => assignmentCard(item, state.selectedAssignment === item.id)).join('')}
       </div>
-      ${selected ? assignmentDetail(selected) : '<div class="card">No assignment selected.</div>'}
+      ${panel}
     </div>
   `);
 }
@@ -319,48 +335,70 @@ function renderRadarPage() {
 function assignmentCard(item, active) {
   return `
     <button class="assignment-card ${active ? 'active' : ''}" data-assignment="${item.id}" type="button" aria-pressed="${active}">
-      <div class="chip-row">${chip(item.risk)}${chip(item.zone)}</div>
+      <div class="chip-row">${chip(item.riskLevel)}${chip(item.type, 'blue')}</div>
       <h3>${item.title}</h3>
-      <p>${item.course} - ${item.type} - ${item.dueLabel}</p>
-      <div class="progress-line"><span style="--w:${item.completion}%"></span></div>
-      <div class="meta">${item.completion}% complete - ${item.remainingHours}h remaining</div>
-      <p><strong>Next:</strong> ${item.recommendedNextAction}</p>
+      <p>${item.course}</p>
+      <div class="assignment-facts">
+        <span><strong>Due</strong><time datetime="${item.dueDate}">${formatDate(item.dueDate)} - ${item.dueLabel}</time></span>
+        <span><strong>Estimate</strong>${item.estimatedHours} hours</span>
+      </div>
+      <div class="progress-line" aria-label="${item.completionPercentage}% complete"><span style="--w:${item.completionPercentage}%"></span></div>
+      <div class="meta">${item.completionPercentage}% complete</div>
     </button>
   `;
 }
 
 function assignmentDetail(item) {
+  const intelligence = item.intelligence;
   const list = (items) => `<ul>${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
   return `
     <article class="card detail-panel">
-      <div class="chip-row">${chip(item.risk)}${chip(item.zone)}${chip(item.dueLabel, 'blue')}</div>
+      <div class="eyebrow">Assignment Intelligence</div>
+      <div class="chip-row">${chip(item.riskLevel)}${chip(item.type, 'blue')}${chip(item.dueLabel, 'blue')}</div>
       <h2>${item.title}</h2>
-      <p>${item.course} - ${item.type}</p>
+      <p>${item.course} - ${item.estimatedHours} estimated hours - ${item.completionPercentage}% complete</p>
       <div class="next-action" style="margin-top:16px;padding:18px;border-radius:22px">
-        <div class="eyebrow" style="color:#8cf0de">Next Best Action</div>
-        <h3>${item.recommendedNextAction}</h3>
-        <p>${item.justStart}</p>
+        <div class="eyebrow" style="color:#8cf0de">Summary</div>
+        <p>${intelligence.summary}</p>
       </div>
       <div class="detail-grid">
-        <div class="mini-box"><strong>Requirements</strong>${list(item.requirements)}</div>
-        <div class="mini-box"><strong>Suggested outline</strong>${list(item.outline)}</div>
-        <div class="mini-box"><strong>Materials</strong>${list(item.materials)}</div>
-        <div class="mini-box"><strong>Risks</strong>${list(item.risks)}</div>
+        <div class="mini-box"><strong>Requirements</strong>${list(intelligence.requirements)}</div>
+        <div class="mini-box"><strong>Suggested Outline</strong>${list(intelligence.suggestedOutline)}</div>
+        <div class="mini-box"><strong>Materials</strong>${list(intelligence.materials)}</div>
+        <div class="mini-box"><strong>Risks</strong>${list(intelligence.risks)}</div>
       </div>
       <div class="mini-box" style="margin-top:12px">
         <strong>Milestones</strong>
-        ${list(item.milestones.map((m) => `${m.done ? 'Done' : 'Todo'}: ${m.label}`))}
+        ${list(intelligence.milestones.map((m) => `${m.done ? 'Done' : 'Todo'}: ${m.label}`))}
       </div>
       <div class="mini-box" style="margin-top:12px;background:var(--teal-soft)">
-        <strong>Academic integrity note</strong>
-        <p>The Hub helps you plan and start the work. It does not complete assignments for you.</p>
+        <strong>Recommended Actions</strong>
+        ${list(intelligence.recommendedActions)}
       </div>
     </article>
   `;
 }
 
+async function selectAssignment(id) {
+  state.selectedAssignment = id;
+  if (state.assignmentDetails[id]) {
+    render();
+    return;
+  }
+  state.assignmentLoading = true;
+  render();
+  try {
+    state.assignmentDetails[id] = await api(`/assignments/${encodeURIComponent(id)}`);
+  } catch (error) {
+    toast('Could not load assignment details');
+  } finally {
+    state.assignmentLoading = false;
+    render();
+  }
+}
+
 function renderGapsPage() {
-  main.innerHTML = pageShell('Learning Gaps', 'Weak concepts are connected to upcoming consequences, not shown as vague analytics.', `
+  main.innerHTML = pageShell('Learning Gaps', 'See which topics need work before the next deadline.', `
     <div class="two-col">
       ${state.gaps.map((gap) => `
         <article class="gap-card">
@@ -372,6 +410,7 @@ function renderGapsPage() {
             <p><strong>When:</strong> ${gap.whenItMatters}</p>
             <p><strong>Recommended fix:</strong> ${gap.recommendedFix}</p>
             <p><strong>Just start:</strong> ${gap.justStart}</p>
+            ${gap.linkedAssignment ? `<p><strong>Linked assignment:</strong> ${gap.linkedAssignment.title} - ${gap.linkedAssignment.dueLabel}</p>` : ''}
           </div>
         </article>
       `).join('')}
@@ -380,7 +419,7 @@ function renderGapsPage() {
 }
 
 function renderCalendarPage() {
-  main.innerHTML = pageShell('Academic Pressure Calendar', 'A simple timeline that shows pressure, not just dates.', `
+  main.innerHTML = pageShell('Academic Pressure Calendar', 'See what is coming up and when to work on it.', `
     <div class="card">
       <div class="timeline">
         ${state.calendar.map((item) => `
@@ -389,7 +428,7 @@ function renderCalendarPage() {
             <div>
               <div class="chip-row">${chip(item.label, 'blue')}${chip(item.pressure)}</div>
               <h3>${item.title}</h3>
-              <p>${item.type === 'study' ? 'Recommended study block generated from tonight pressure.' : 'Pressure increases if this stays untouched.'}</p>
+              <p>${item.type === 'study' ? 'Study this tonight.' : 'Waiting will make this harder.'}</p>
             </div>
             <span class="pressure ${item.pressure}"></span>
           </article>
@@ -400,10 +439,10 @@ function renderCalendarPage() {
 }
 
 function renderSettingsPage() {
-  main.innerHTML = pageShell('Settings', 'Keep the MVP demo-first, safe, and configurable.', `
+  main.innerHTML = pageShell('Settings', 'Choose how The Hub works for you.', `
     <div class="settings-grid">
-      ${settingRow('Demo Mode', 'Preload realistic student data so the pitch never depends on Google.', 'demo')}
-      ${settingRow('Google connection status', 'Optional future sync. Demo Mode works perfectly without it.', 'google')}
+      ${settingRow('Demo Mode', 'Use sample assignments and deadlines.', 'demo')}
+      ${settingRow('Google connection status', 'Google sync is not connected.', 'google')}
       ${settingRow('Academic integrity mode', 'The Hub plans and teaches starts. It does not produce submissions.', 'integrity')}
       <div class="setting-row">
         <div><strong>Preferred study block length</strong><p>${state.settings.blockLength} minutes</p></div>
@@ -454,7 +493,7 @@ async function generatePlan() {
       body: JSON.stringify({ availableMinutes: minutes, energy: state.energy, goal: state.goal })
     });
     state.startedActivities = [];
-    toast('Plan generated');
+    toast('Plan ready');
   } catch (error) {
     toast('Could not generate the plan. Try again.');
   } finally {
@@ -504,6 +543,9 @@ async function loadData() {
     state.gaps = data.gaps;
     state.calendar = data.calendar;
     state.selectedAssignment = data.assignments[0]?.id || null;
+    if (state.selectedAssignment) {
+      state.assignmentDetails[state.selectedAssignment] = await api(`/assignments/${encodeURIComponent(state.selectedAssignment)}`);
+    }
   } catch (error) {
     toast('Demo data failed to load');
   }
@@ -529,8 +571,7 @@ document.addEventListener('click', (event) => {
 
   const assignmentBtn = event.target.closest('[data-assignment]');
   if (assignmentBtn) {
-    state.selectedAssignment = assignmentBtn.dataset.assignment;
-    render();
+    selectAssignment(assignmentBtn.dataset.assignment);
   }
 
   const startBtn = event.target.closest('[data-start-activity]');
@@ -628,6 +669,7 @@ $('#coachFab').addEventListener('click', () => {
   state.profileOpen = false;
   renderProfile();
   renderCoach();
+  requestAnimationFrame(() => $('#coachInput').focus());
 });
 $('#closeCoachBtn').addEventListener('click', () => {
   state.coachOpen = false;

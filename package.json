@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node server/index.js",
-    "check": "node --check server/index.js && node --check server/planner.js && node --check server/demoData.js && node --check public/app.js && node --check scripts/smoke-test.js",
+    "check": "node --check server/index.js && node --check server/planner.js && node --check server/demoData.js && node --check server/academicData.js && node --check server/tonightPlanData.js && node --check public/app.js && node --check scripts/smoke-test.js",
     "smoke": "node scripts/smoke-test.js"
   },
   "keywords": [

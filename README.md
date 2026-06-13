@@ -29,8 +29,8 @@ The Hub answers: **"What should I do tonight, and what should I ignore?"**
 The student selects:
 
 - Available time: 30 min, 60 min, 2 hours, or custom
-- Energy level: Focused, Normal, Tired, or Essentials only
-- Goal: Stay on track, Catch up, Improve test readiness, or Minimum viable night
+- Energy level: Focused, Normal, Tired, or Bare Minimum
+- Goal: Stay on Track, Catch Up, Get Ahead, or Minimum Viable Night
 
 The Hub generates:
 
@@ -84,15 +84,17 @@ public/styles.css      Premium UI styling
 public/app.js          Frontend state and interactions
 server/index.js        Local web server and API routes
 server/demoData.js     Demo student data
+server/academicData.js Assignment cards, intelligence, and learning-gap API shapes
+server/tonightPlanData.js Assignment-specific Tonight's Plan demo work packages
 server/planner.js      Planning and coach logic
 ```
 
 ## API Endpoints
 
 - `POST /api/plan-night`
-- `GET /api/assignments`
-- `GET /api/assignments/:id`
-- `GET /api/learning-gaps`
+- `GET /api/assignments` - five lightweight Assignment Radar cards
+- `GET /api/assignments/:id` - selected assignment and Assignment Intelligence
+- `GET /api/learning-gaps` - learning gaps linked to assignments
 - `GET /api/calendar`
 - `POST /api/coach`
 - `GET /api/auth/google`
@@ -155,7 +157,7 @@ Google integration is a roadmap item. Demo Mode works without environment variab
    - Do not polish Hamlet slides tonight.
 8. Click Just Start.
 9. Show tiny first step:
-   - Set up one ICE table or draw one calculus region.
+   - Complete one titration calculation or one calculus problem.
 10. Open Assignment Radar.
 11. Show danger/panic zones.
 12. Open Congress of Vienna Essay.

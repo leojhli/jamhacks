@@ -28,8 +28,8 @@ const assignments = [
     risk: 'Medium',
     zone: 'Danger',
     masteryKey: 'applications-of-integration',
-    recommendedNextAction: 'Draw the first region and label upper/lower functions.',
-    justStart: 'Draw the region for the first problem and label upper/lower functions. Stop after the setup.',
+    recommendedNextAction: 'Complete the first unfinished application problem and check its bounds and units.',
+    justStart: 'Complete the first unfinished problem from diagram through final answer and units.',
     requirements: [
       'Complete assigned problems',
       'Show full setup',
@@ -73,8 +73,8 @@ const assignments = [
     risk: 'High',
     zone: 'Danger',
     masteryKey: 'titration-calculations',
-    recommendedNextAction: 'Organize raw titration data into a clean table before writing.',
-    justStart: 'Create a clean data table with trial volume, molarity, and endpoint notes. Do not write the conclusion yet.',
+    recommendedNextAction: 'Complete the final data table and calculate molarity for Trial 1.',
+    justStart: 'Fill the final table row for Trial 1 and calculate its molarity with units and significant figures.',
     requirements: [
       'Purpose',
       'Background',
@@ -123,8 +123,8 @@ const assignments = [
     risk: 'High',
     zone: 'Danger',
     masteryKey: 'congress-of-vienna',
-    recommendedNextAction: 'Choose whether your argument is successful, partially successful, or flawed.',
-    justStart: 'Choose one position: successful, partially successful, or flawed. Write only that choice.',
+    recommendedNextAction: 'Write a defensible thesis and list three facts that support it.',
+    justStart: 'Write the final thesis sentence and two evidence bullets that directly support it.',
     requirements: [
       'Clear thesis',
       'Historical context',
@@ -171,8 +171,8 @@ const assignments = [
     risk: 'Low',
     zone: 'Safe',
     masteryKey: 'hamlet-themes',
-    recommendedNextAction: 'Pick one theme and find one quote from Hamlet that supports it.',
-    justStart: 'Pick one theme and find one quote from Hamlet that supports it.',
+    recommendedNextAction: 'Create one evidence slide with a theme claim, quotation, and interpretation.',
+    justStart: 'Create one slide with a theme claim, supporting quotation, and two-sentence interpretation.',
     requirements: [
       'Theme selection',
       'Interpretive claim',
@@ -218,8 +218,8 @@ const assignments = [
     risk: 'Medium-High',
     zone: 'Danger',
     masteryKey: 'historical-causation',
-    recommendedNextAction: 'Create a one-page timeline of the units covered on the midterm.',
-    justStart: 'Create a one-page timeline with five anchor events. Stop after the first pass.',
+    recommendedNextAction: 'Add eight anchor events and cause/effect links to the midterm timeline.',
+    justStart: 'Write five anchor events in chronological order and add a cause beside the first event.',
     requirements: [
       'Review major units',
       'Build timeline',
@@ -263,7 +263,7 @@ const learningGaps = [
     whereItMatters: 'AP Chemistry test in 3 days.',
     whenItMatters: 'This week',
     recommendedFix: '25 minutes of equilibrium practice tonight.',
-    justStart: 'Set up one ICE table.',
+    justStart: 'Complete one equilibrium practice problem and check the final concentration against the answer key.',
     linkedAssignmentId: 'titration-lab'
   },
   {
