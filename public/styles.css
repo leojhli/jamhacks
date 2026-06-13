@@ -51,6 +51,7 @@
   --font: "Geist", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --display: "Space Grotesk", "Geist", ui-sans-serif, system-ui, sans-serif;
   --hand: "Caveat", "Segoe Script", "Comic Sans MS", cursive;
+  --pixel: "Press Start 2P", "IBM Plex Mono", monospace;
 }
 
 * { box-sizing: border-box; }
@@ -1234,6 +1235,62 @@ p { text-wrap: pretty; }
 .mini-box:hover,
 .gap-card:hover .mastery-orb,
 .plan-item:hover .time-chip { animation: none; }
+
+/* ============================================================
+   PIXEL-ART ACCENTS (8-bit) — retro badges, stepped corners
+   & box-shadow sparkles. Selectively pixelated, not everywhere.
+   ============================================================ */
+.nav-icon,
+.time-chip,
+.mastery-orb,
+.icon-button,
+.avatar,
+.brand-mark {
+  font-family: var(--pixel);
+  border-radius: 0;
+  image-rendering: pixelated;
+  clip-path: polygon(
+    0 4px, 4px 4px, 4px 0,
+    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+  );
+}
+.nav-icon { font-size: 8px; line-height: 1; }
+.icon-button { font-size: 12px; }
+.avatar { font-size: 9px; letter-spacing: -1px; }
+.time-chip { font-size: 9px; line-height: 1.4; }
+.mastery-orb { font-size: 13px; }
+
+/* Pixel logo: square eye instead of the round mark */
+.brand-mark span,
+.brand-mark span::after { border-radius: 0; }
+
+/* Pixel-art sparkle (5x5 box-shadow plus) on the chalkboards */
+.next-action::after,
+.decision-card::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 3px;
+  height: 3px;
+  background: var(--note-yellow);
+  image-rendering: pixelated;
+  box-shadow:
+    0 -3px var(--note-yellow), 0 -6px var(--note-yellow),
+    0 3px var(--note-yellow), 0 6px var(--note-yellow),
+    -3px 0 var(--note-yellow), -6px 0 var(--note-yellow),
+    3px 0 var(--note-yellow), 6px 0 var(--note-yellow);
+}
+
+/* Idle: the sparkles twinkle */
+.is-idle .next-action::after,
+.is-idle .decision-card::after { animation: twinkle 1.4s steps(2) infinite; }
+@keyframes twinkle {
+  0%, 100% { opacity: .3; transform: scale(.66); }
+  50% { opacity: 1; transform: scale(1); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
