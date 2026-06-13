@@ -99,18 +99,20 @@ function chip(text, extra = '') {
 
 function renderNav() {
   $('#nav').innerHTML = navItems.map(([id, label, icon]) => `
-    <button class="nav-button ${state.page === id ? 'active' : ''}" data-page="${id}" type="button">
-      <span class="nav-icon">${icon}</span>
+    <button class="nav-button ${state.page === id ? 'active' : ''}" data-page="${id}" type="button" aria-label="${label}" ${state.page === id ? 'aria-current="page"' : ''}>
+      <span class="nav-icon" aria-hidden="true">${icon}</span>
       <span>${label}</span>
     </button>
   `).join('');
 }
 
 function renderProfile() {
-  $('#profileMenu').classList.toggle('open', state.profileOpen);
+  $('#profileMenu').hidden = !state.profileOpen;
+  $('#profileButton').setAttribute('aria-expanded', String(state.profileOpen));
   $('#signedInProfile').hidden = !state.signedIn;
   $('#signedOutProfile').hidden = state.signedIn;
   $('#demoModeBtn').textContent = state.demoMode ? 'Demo Mode' : 'Live Mode';
+  $('#demoModeBtn').setAttribute('aria-pressed', String(state.demoMode));
 }
 
 function pageShell(title, subtitle, content) {
@@ -129,7 +131,20 @@ function pageShell(title, subtitle, content) {
 }
 
 function optionButton(value, label, active, key) {
-  return `<button class="option ${active ? 'active' : ''}" type="button" data-option-key="${key}" data-option="${value}">${label}</button>`;
+  return `<button class="option ${active ? 'active' : ''}" type="button" data-option-key="${key}" data-option="${value}" aria-pressed="${active}">${label}</button>`;
+}
+
+function updatePlanOptions(key) {
+  document.querySelectorAll(`[data-option-key="${key}"]`).forEach((button) => {
+    const value = key === 'time' && button.dataset.option !== 'custom'
+      ? Number(button.dataset.option)
+      : button.dataset.option;
+    button.classList.toggle('active', state[key] === value);
+    button.setAttribute('aria-pressed', String(state[key] === value));
+  });
+  if (key === 'time') {
+    document.querySelector('.custom-row')?.classList.toggle('open', state.time === 'custom');
+  }
 }
 
 function renderPlanPage() {
@@ -146,10 +161,9 @@ function renderPlanPage() {
           <div class="decision-card">
             <div class="eyebrow" style="color:#8cf0de">Tonight's decision</div>
             <h2 style="margin:10px 0 0">Stop guessing. Start the right thing.</h2>
-            <div class="meter"><span></span></div>
             <div class="decision-mini">
-              <strong>Current risk signal</strong>
-              <small>Chemistry is pulling the week into danger zone.</small>
+              <strong>What needs attention</strong>
+              <small>Chemistry needs a short start before the week gets harder.</small>
             </div>
           </div>
         </div>
@@ -157,32 +171,33 @@ function renderPlanPage() {
 
       <div class="panel-grid">
         <form class="card" id="planForm">
-          <div class="control-group">
-            <div class="control-label">Available Time</div>
+          <fieldset class="control-group">
+            <legend class="control-label">Available Time</legend>
             <div class="option-grid">
               ${[30, 60, 90, 120].map((m) => optionButton(m, m === 120 ? '2 hours' : `${m} min`, state.time === m, 'time')).join('')}
               ${optionButton('custom', 'Custom', state.time === 'custom', 'time')}
             </div>
-          </div>
+          </fieldset>
           <div class="custom-row ${state.time === 'custom' ? 'open' : ''}">
-            <input id="customTimeInput" type="number" min="15" max="240" value="${state.customTime}">
-            <span class="meta">minutes</span>
+            <label for="customTimeInput">Custom time</label>
+            <input id="customTimeInput" type="number" min="15" max="240" value="${state.customTime}" aria-describedby="customTimeUnit">
+            <span class="meta" id="customTimeUnit">minutes</span>
           </div>
-          <div class="control-group">
-            <div class="control-label">Energy Level</div>
+          <fieldset class="control-group">
+            <legend class="control-label">Energy Level</legend>
             <div class="option-grid compact">
               ${energyOptions.map(([id, label]) => optionButton(id, label, state.energy === id, 'energy')).join('')}
             </div>
-          </div>
-          <div class="control-group">
-            <div class="control-label">Tonight's Goal</div>
+          </fieldset>
+          <fieldset class="control-group">
+            <legend class="control-label">Tonight's Goal</legend>
             <div class="option-grid compact">
               ${goalOptions.map(([id, label]) => optionButton(id, label, state.goal === id, 'goal')).join('')}
             </div>
-          </div>
-          <button class="primary-button wide" type="submit">${state.loadingPlan ? 'Generating...' : 'Generate My Plan'}</button>
+          </fieldset>
+          <button class="primary-button wide" type="submit" ${state.loadingPlan ? 'disabled aria-busy="true"' : ''}>${state.loadingPlan ? 'Generating...' : 'Generate My Plan'}</button>
         </form>
-        <div class="output-stack">${output}</div>
+        <div class="output-stack" aria-live="polite" aria-busy="${state.loadingPlan}">${output}</div>
       </div>
     </section>
   `;
@@ -246,29 +261,27 @@ function planOutput(result) {
         `).join('')}
       </div>
     </div>
-    <div class="two-col">
-      <div class="card">
-        <div class="eyebrow">What Not To Do Tonight</div>
-        ${result.skipTonight.map((item) => `<div class="mini-box" style="margin-top:10px"><strong>${item.title}</strong><p>${item.reason}</p></div>`).join('')}
+    <details class="card plan-context">
+      <summary>More context for tonight</summary>
+      <div class="two-col plan-context-grid">
+        <div>
+          <h3>What not to do tonight</h3>
+          ${result.skipTonight.map((item) => `<div class="mini-box"><strong>${item.title}</strong><p>${item.reason}</p></div>`).join('')}
+        </div>
+        <div>
+          <h3>Pressure to watch</h3>
+          <div class="timeline">
+            ${result.panicWarnings.map((warning) => `
+              <article class="timeline-item">
+                <div class="meta">${warning.due}</div>
+                <div><strong>${warning.title}</strong><p>${warning.message}</p></div>
+                ${chip(warning.zone)}
+              </article>
+            `).join('')}
+          </div>
+        </div>
       </div>
-      <div class="card">
-        <div class="eyebrow">Just Start Mode</div>
-        <h3>${result.justStart.title}</h3>
-        <p>${result.justStart.step}</p>
-      </div>
-    </div>
-    <div class="card">
-      <div class="eyebrow">Panic Prevention</div>
-      <div class="timeline" style="margin-top:12px">
-        ${result.panicWarnings.map((warning) => `
-          <article class="timeline-item">
-            <div class="meta">${warning.due}</div>
-            <div><strong>${warning.title}</strong><p>${warning.message}</p></div>
-            ${chip(warning.zone)}
-          </article>
-        `).join('')}
-      </div>
-    </div>
+    </details>
     ${recovery}
   `;
 }
@@ -292,7 +305,7 @@ function renderRadarPage() {
 
 function assignmentCard(item, active) {
   return `
-    <button class="assignment-card ${active ? 'active' : ''}" data-assignment="${item.id}" type="button">
+    <button class="assignment-card ${active ? 'active' : ''}" data-assignment="${item.id}" type="button" aria-pressed="${active}">
       <div class="chip-row">${chip(item.risk)}${chip(item.zone)}</div>
       <h3>${item.title}</h3>
       <p>${item.course} - ${item.type} - ${item.dueLabel}</p>
@@ -422,7 +435,7 @@ function settingRow(title, detail, key) {
   return `
     <div class="setting-row">
       <div><strong>${title}</strong><p>${detail}</p></div>
-      <button class="toggle ${state.settings[key] ? 'on' : ''}" data-setting="${key}" type="button" aria-label="${title}"></button>
+      <button class="toggle ${state.settings[key] ? 'on' : ''}" data-setting="${key}" type="button" role="switch" aria-checked="${state.settings[key]}" aria-label="${title}"></button>
     </div>
   `;
 }
@@ -432,7 +445,8 @@ function labelFor(id, options) {
 }
 
 function renderCoach() {
-  $('#coachPanel').classList.toggle('open', state.coachOpen);
+  $('#coachPanel').hidden = !state.coachOpen;
+  $('#coachFab').setAttribute('aria-expanded', String(state.coachOpen));
   $('#coachLog').innerHTML = state.coachMessages.map((message) => `
     <div class="message ${message.role === 'user' ? 'user' : ''}">${message.text}</div>
   `).join('');
@@ -440,17 +454,22 @@ function renderCoach() {
 }
 
 async function generatePlan() {
+  const minutes = state.time === 'custom' ? Number(state.customTime) : Number(state.time);
+  if (!Number.isFinite(minutes) || minutes < 15 || minutes > 240) {
+    toast('Choose a time between 15 and 240 minutes');
+    $('#customTimeInput')?.focus();
+    return;
+  }
   state.loadingPlan = true;
   render();
   try {
-    const minutes = state.time === 'custom' ? Number(state.customTime) : Number(state.time);
     state.plan = await api('/plan-night', {
       method: 'POST',
       body: JSON.stringify({ availableMinutes: minutes, energy: state.energy, goal: state.goal })
     });
     toast('Plan generated');
   } catch (error) {
-    toast('Could not generate plan');
+    toast('Could not generate the plan. Try again.');
   } finally {
     state.loadingPlan = false;
     render();
@@ -492,19 +511,13 @@ function render() {
 
 async function loadData() {
   try {
-    const [profile, assignments, gaps, calendar, progress] = await Promise.all([
-      api('/profile'),
-      api('/assignments'),
-      api('/learning-gaps'),
-      api('/calendar'),
-      api('/progress')
-    ]);
-    state.profile = profile;
-    state.assignments = assignments;
-    state.gaps = gaps;
-    state.calendar = calendar;
-    state.progress = progress;
-    state.selectedAssignment = assignments[0]?.id || null;
+    const data = await api('/bootstrap');
+    state.profile = data.profile;
+    state.assignments = data.assignments;
+    state.gaps = data.gaps;
+    state.calendar = data.calendar;
+    state.progress = data.progress;
+    state.selectedAssignment = data.assignments[0]?.id || null;
   } catch (error) {
     toast('Demo data failed to load');
   }
@@ -525,7 +538,7 @@ document.addEventListener('click', (event) => {
     let value = optionBtn.dataset.option;
     if (key === 'time' && value !== 'custom') value = Number(value);
     state[key] = value;
-    render();
+    updatePlanOptions(key);
   }
 
   const assignmentBtn = event.target.closest('[data-assignment]');
@@ -587,7 +600,9 @@ document.addEventListener('submit', (event) => {
 
 $('#profileButton').addEventListener('click', () => {
   state.profileOpen = !state.profileOpen;
+  state.coachOpen = false;
   renderProfile();
+  renderCoach();
 });
 $('#demoModeBtn').addEventListener('click', () => {
   state.demoMode = !state.demoMode;
@@ -619,6 +634,8 @@ $('#continueDemoBtn').addEventListener('click', () => {
 });
 $('#coachFab').addEventListener('click', () => {
   state.coachOpen = true;
+  state.profileOpen = false;
+  renderProfile();
   renderCoach();
 });
 $('#closeCoachBtn').addEventListener('click', () => {
@@ -626,6 +643,17 @@ $('#closeCoachBtn').addEventListener('click', () => {
   renderCoach();
 });
 document.addEventListener('keydown', (event) => {
+  if (event.target.id === 'searchInput' && event.key === 'Enter') {
+    const query = event.target.value.trim().toLowerCase();
+    const match = navItems.find(([, label]) => label.toLowerCase().includes(query));
+    if (match && query) {
+      state.page = match[0];
+      render();
+      main.focus();
+    } else {
+      toast(query ? 'No matching Hub page' : 'Type a page name to search');
+    }
+  }
   if (event.key === 'Escape') {
     state.profileOpen = false;
     state.coachOpen = false;

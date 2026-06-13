@@ -45,6 +45,7 @@ async function get(path) {
 (async () => {
   try {
     await waitForServer();
+    const bootstrap = await get('/bootstrap');
     const assignments = await get('/assignments');
     const gaps = await get('/learning-gaps');
     const plan = await post('/plan-night', {
@@ -56,6 +57,7 @@ async function get(path) {
       message: "I have 45 minutes and I'm tired. What should I do?"
     });
 
+    if (!bootstrap.assignments.length || !bootstrap.gaps.length) throw new Error('Bootstrap data missing');
     if (!assignments.length) throw new Error('No assignments returned');
     if (!gaps.length) throw new Error('No learning gaps returned');
     if (!plan.nextBestAction || !plan.plan.length) throw new Error('No plan returned');

@@ -1,18 +1,20 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { profile, assignments, learningGaps, calendar, progress } = require('./demoData');
 const { buildPlan, coach } = require('./planner');
 
 const root = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT || 3000);
 
-function send(res, status, body, type = 'application/json') {
+function send(res, status, body, type = 'application/json', headers = {}) {
   res.writeHead(status, {
     'Content-Type': type,
-    'Cache-Control': 'no-store'
+    'Cache-Control': 'no-store',
+    ...headers
   });
-  res.end(type === 'application/json' ? JSON.stringify(body, null, 2) : body);
+  res.end(type === 'application/json' ? JSON.stringify(body) : body);
 }
 
 function notFound(res) {
@@ -50,16 +52,40 @@ function contentType(file) {
   return 'application/octet-stream';
 }
 
-function serveFile(res, file) {
+function serveFile(req, res, file) {
   fs.readFile(file, (error, data) => {
     if (error) return notFound(res);
-    send(res, 200, data, contentType(file));
+    const type = contentType(file);
+    const cacheControl = file.endsWith('.html') ? 'no-cache' : 'public, max-age=3600';
+    const acceptsGzip = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
+    const compressible = type.startsWith('text/');
+
+    if (acceptsGzip && compressible && data.length > 1024) {
+      return zlib.gzip(data, (gzipError, compressed) => {
+        if (gzipError) return send(res, 200, data, type, { 'Cache-Control': cacheControl });
+        send(res, 200, compressed, type, {
+          'Cache-Control': cacheControl,
+          'Content-Encoding': 'gzip',
+          'Content-Length': compressed.length,
+          'Vary': 'Accept-Encoding'
+        });
+      });
+    }
+
+    send(res, 200, data, type, {
+      'Cache-Control': cacheControl,
+      'Content-Length': data.length,
+      'Vary': 'Accept-Encoding'
+    });
   });
 }
 
 async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { ok: true });
   if (req.method === 'GET' && url.pathname === '/api/profile') return send(res, 200, profile);
+  if (req.method === 'GET' && url.pathname === '/api/bootstrap') {
+    return send(res, 200, { profile, assignments, gaps: learningGaps, calendar, progress });
+  }
   if (req.method === 'GET' && url.pathname === '/api/assignments') return send(res, 200, assignments);
   if (req.method === 'GET' && url.pathname.startsWith('/api/assignments/')) {
     const id = decodeURIComponent(url.pathname.split('/').pop());
@@ -101,14 +127,14 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
 
     if (url.pathname === '/' || url.pathname === '/index.html') {
-      return serveFile(res, path.join(root, 'The Hub.dc.html'));
+      return serveFile(req, res, path.join(root, 'The Hub.dc.html'));
     }
 
     const publicPath = path.join(root, 'public', decodeURIComponent(url.pathname.replace(/^\/+/, '')));
     if (!publicPath.startsWith(path.join(root, 'public'))) return notFound(res);
-    if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) return serveFile(res, publicPath);
+    if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) return serveFile(req, res, publicPath);
 
-    return serveFile(res, path.join(root, 'The Hub.dc.html'));
+    return serveFile(req, res, path.join(root, 'The Hub.dc.html'));
   } catch (error) {
     send(res, 500, { error: error.message || 'Server error' });
   }
