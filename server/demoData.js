@@ -325,7 +325,7 @@ const learningGaps = [
 
 const calendar = [
   { day: 'Tonight', label: 'Recommended block', type: 'study', title: 'Chemistry equilibrium review', pressure: 'high' },
-  { day: 'Tomorrow', label: 'Due', type: 'assignment', title: 'Integration Applications', pressure: 'panic' },
+  { day: 'Tomorrow', label: 'Due', type: 'assignment', title: 'Integration Applications', pressure: 'high' },
   { day: 'In 3 days', label: 'Due', type: 'assignment', title: 'Titration Lab Report', pressure: 'danger' },
   { day: 'In 4 days', label: 'Due', type: 'assignment', title: 'Congress of Vienna Essay', pressure: 'danger' },
   { day: 'In 6 days', label: 'Exam', type: 'test', title: 'AP World History Midterm', pressure: 'danger' },

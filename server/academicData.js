@@ -16,6 +16,13 @@ const summaryByAssignment = {
   'world-midterm': 'Review the major units, rebuild the timeline, and practice the question formats used on the midterm.'
 };
 
+// Radar shows exactly three danger levels: High, Medium, Low.
+function normalizeRisk(risk) {
+  if (risk === 'Medium-High') return 'High';
+  if (risk === 'High' || risk === 'Medium' || risk === 'Low') return risk;
+  return 'Medium';
+}
+
 function assignmentCard(assignment) {
   return {
     id: assignment.id,
@@ -26,7 +33,7 @@ function assignmentCard(assignment) {
     dueLabel: assignment.dueLabel,
     estimatedHours: assignment.remainingHours,
     completionPercentage: assignment.completion,
-    riskLevel: assignment.risk
+    riskLevel: normalizeRisk(assignment.risk)
   };
 }
 

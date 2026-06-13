@@ -13,7 +13,16 @@ const state = {
   gaps: [],
   calendar: [],
   startedActivities: [],
+  session: {
+    open: false,
+    loading: false,
+    steps: [],
+    index: 0,
+    done: [],
+    refOpen: false
+  },
   profile: null,
+  classroom: { connected: false, configured: true, email: null, name: null, courses: [] },
   demoMode: true,
   signedIn: true,
   profileOpen: false,
@@ -30,12 +39,25 @@ const state = {
   }
 };
 
+const svg = (body) => `<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+const navIcons = {
+  // crescent moon + twinkle star
+  plan: svg('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" fill="currentColor" stroke="none"/><path d="M18 3.2l.75 1.7 1.7.75-1.7.75L18 8.1l-.75-1.7-1.7-.75 1.7-.75z" fill="currentColor" stroke="none"/>'),
+  // radar dish with sweep + blip
+  radar: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.4"/><path d="M12 12V3.5"/><path d="M12 12l6 3.4"/><circle cx="16.4" cy="8.6" r="1.3" fill="currentColor" stroke="none"/>'),
+  // lightbulb idea
+  gaps: svg('<path d="M9 18.5h6"/><path d="M10 21.5h4"/><path d="M8 14.5a6 6 0 1 1 8 0c-.85.75-1.1 1.35-1.1 2.5H9.1c0-1.15-.25-1.75-1.1-2.5z"/>'),
+  // tear-off calendar
+  calendar: svg('<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17"/><path d="M8 3v4M16 3v4"/><circle cx="8.6" cy="13.6" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="13.6" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.4" cy="13.6" r="1.1" fill="currentColor" stroke="none"/>'),
+  // settings gear
+  settings: svg('<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>')
+};
 const navItems = [
-  ['plan', 'Plan My Night', 'PM'],
-  ['radar', 'Assignment Radar', 'AR'],
-  ['gaps', 'Learning Gaps', 'LG'],
-  ['calendar', 'Calendar', 'CA'],
-  ['settings', 'Settings', 'SE']
+  ['plan', 'Plan My Night', navIcons.plan],
+  ['radar', 'Assignment Radar', navIcons.radar],
+  ['gaps', 'Learning Gaps', navIcons.gaps],
+  ['calendar', 'Calendar', navIcons.calendar],
+  ['settings', 'Settings', navIcons.settings]
 ];
 
 const energyOptions = [
@@ -96,6 +118,46 @@ function chip(text, extra = '') {
   return `<span class="chip ${extra || tone(text)}">${text}</span>`;
 }
 
+// Distinct colour per course (kept clear of red/amber/green so it never reads as a risk).
+const courseColors = {
+  'AP Chemistry': 'teal',
+  'AP Calculus BC': 'blue',
+  'AP World History': 'lav',
+  'AP English Literature': 'plum',
+  'Computer Science': 'pink',
+  'Economics': 'dark'
+};
+function courseClass(course) {
+  return courseColors[course] || 'dark';
+}
+
+// Distinct colour per task type (kept clear of red/amber/green so it never reads as a risk).
+const typeColors = {
+  'Problem Set': 'blue',
+  'Lab Report': 'teal',
+  'Essay': 'lav',
+  'Presentation': 'plum',
+  'Exam Prep': 'dark'
+};
+function typeClass(type) {
+  return typeColors[type] || 'blue';
+}
+
+// Mastery -> learning-gap severity: High (red), Medium (amber), Low (green).
+function abilityChip(mastery) {
+  const [label, cls] = mastery < 50 ? ['High', 'red']
+    : mastery < 65 ? ['Medium', 'amber']
+    : ['Low', 'green'];
+  return chip(label, cls);
+}
+
+// Calendar pressure -> High / Medium / Low chip (red / amber / green).
+function pressureChip(pressure) {
+  const map = { high: ['High', 'red'], danger: ['Medium', 'amber'], safe: ['Low', 'green'] };
+  const [label, cls] = map[pressure] || [pressure, tone(pressure)];
+  return chip(label, cls);
+}
+
 function formatDate(date) {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(new Date(`${date}T12:00:00`));
 }
@@ -114,6 +176,10 @@ function renderProfile() {
   $('#profileButton').setAttribute('aria-expanded', String(state.profileOpen));
   $('#signedInProfile').hidden = !state.signedIn;
   $('#signedOutProfile').hidden = state.signedIn;
+  const syncBtn = $('#syncGoogleBtn');
+  if (syncBtn) {
+    syncBtn.textContent = state.classroom.connected ? 'Disconnect Classroom' : 'Connect Google Classroom';
+  }
 }
 
 function renderTonightProgress() {
@@ -264,7 +330,7 @@ function planOutput(result) {
       <p><strong>${result.nextBestAction.minutes} minutes</strong> - ${result.nextBestAction.why}</p>
       <button class="ghost-button" data-start-activity="${result.plan[0].id}" data-start-step="${escapeAttr(result.justStart.step)}" type="button" aria-pressed="${state.startedActivities.includes(result.plan[0].id)}">${state.startedActivities.includes(result.plan[0].id) ? 'Started' : 'Just Start'}</button>
     </div>
-    <div class="card">
+    <div class="card whiteboard">
       <div class="section-head">
         <div><h2>Tonight's Plan</h2><p>${result.explanation}</p></div>
       </div>
@@ -281,6 +347,7 @@ function planOutput(result) {
           </article>
         `).join('')}
       </div>
+      <button class="primary-button wide session-start" data-session-open type="button">Start Session →</button>
     </div>
     <details class="card plan-context">
       <summary>More context for tonight</summary>
@@ -311,6 +378,344 @@ function escapeAttr(text) {
   return String(text).replace(/"/g, '&quot;');
 }
 
+/* ============================================================
+   GUIDED SESSION (fullscreen workflow overlay)
+   ============================================================ */
+const sessionRoot = document.getElementById('sessionRoot');
+
+const stepMeta = {
+  brief: { label: 'Brief', tag: 'Why this matters' },
+  materials: { label: 'Materials', tag: 'Pull these up' },
+  rubric: { label: 'Rubric', tag: 'How it is graded' },
+  keysteps: { label: 'Key steps', tag: 'Do this in order' },
+  focus: { label: 'Focus', tag: 'Work block' }
+};
+
+function buildSessionSteps(plan, detailsById) {
+  const steps = [];
+  plan.forEach((item, activityIndex) => {
+    const intel = detailsById[item.id]?.intelligence || {};
+    const base = {
+      activityId: item.id,
+      activityIndex,
+      activityTitle: item.title,
+      course: item.course,
+      minutes: item.minutes,
+      priority: item.priority,
+      zone: item.zone,
+      startStep: item.startStep,
+      outcome: item.reason,
+      summary: item.basedOn?.summary || intel.summary || '',
+      nextMilestone: item.basedOn?.nextMilestone || '',
+      materials: intel.materials || [],
+      requirements: intel.requirements || [],
+      risks: intel.risks || [],
+      outline: intel.suggestedOutline || []
+    };
+    steps.push({ ...base, kind: 'brief' });
+    if (base.materials.length) steps.push({ ...base, kind: 'materials' });
+    if (base.requirements.length || base.risks.length) steps.push({ ...base, kind: 'rubric' });
+    steps.push({ ...base, kind: 'keysteps' });
+    steps.push({ ...base, kind: 'focus' });
+  });
+  steps.push({ kind: 'summary' });
+  return steps;
+}
+
+function sessionActivities() {
+  // Distinct activities in order, with their starting global step index.
+  const seen = new Map();
+  state.session.steps.forEach((step, i) => {
+    if (step.kind === 'summary') return;
+    if (!seen.has(step.activityId)) {
+      seen.set(step.activityId, { ...step, firstIndex: i, steps: [] });
+    }
+    seen.get(step.activityId).steps.push({ kind: step.kind, index: i });
+  });
+  return [...seen.values()];
+}
+
+function sessionMinutesLeft() {
+  const plan = state.plan?.plan || [];
+  return plan
+    .filter((item) => !state.session.done.includes(item.id))
+    .reduce((sum, item) => sum + item.minutes, 0);
+}
+
+function list(items, cls = '') {
+  return `<ul class="${cls}">${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+}
+
+function sessionStepBody(step) {
+  if (step.kind === 'summary') {
+    const acts = sessionActivities();
+    const total = (state.plan?.plan || []).reduce((s, i) => s + i.minutes, 0);
+    const doneCount = state.session.done.length;
+    return `
+      <div class="session-summary">
+        <div class="eyebrow">Session complete</div>
+        <h2>${doneCount === acts.length ? 'Everything done. Stop here.' : 'Good work tonight.'}</h2>
+        <p>You moved through ${acts.length} ${acts.length === 1 ? 'activity' : 'activities'} across a ${total}-minute plan.</p>
+        <div class="summary-list">
+          ${acts.map((a) => `
+            <div class="summary-row ${state.session.done.includes(a.activityId) ? 'is-done' : ''}">
+              <span class="summary-mark" aria-hidden="true">${state.session.done.includes(a.activityId) ? '✓' : '○'}</span>
+              <div><strong>${a.activityTitle}</strong><small>${a.course} · ${a.minutes} min</small></div>
+            </div>
+          `).join('')}
+        </div>
+        <button class="primary-button wide" data-session-finish type="button">Finish &amp; exit</button>
+      </div>
+    `;
+  }
+
+  const meta = stepMeta[step.kind];
+  const head = `
+    <div class="session-step-head">
+      <div class="eyebrow">${meta.tag}</div>
+      <h2>${step.activityTitle}</h2>
+      <div class="chip-row">${chip(step.course, 'blue')}${chip(`${step.minutes} min`, 'blue')}${chip(step.priority)}</div>
+    </div>
+  `;
+
+  if (step.kind === 'brief') {
+    return `
+      ${head}
+      <div class="session-block tint-blue">
+        <h3>Why this matters</h3>
+        <p>${step.summary || step.outcome}</p>
+      </div>
+      <div class="session-block tint-green">
+        <h3>What you'll have when you stop</h3>
+        <p>${step.outcome}</p>
+      </div>
+      ${step.nextMilestone ? `<div class="session-block accent"><h3>Next milestone</h3><p>${step.nextMilestone}</p></div>` : ''}
+    `;
+  }
+
+  if (step.kind === 'materials') {
+    return `
+      ${head}
+      <div class="session-block tint-green">
+        <h3>Open these before you start</h3>
+        ${list(step.materials, 'check-list')}
+      </div>
+    `;
+  }
+
+  if (step.kind === 'rubric') {
+    return `
+      ${head}
+      <div class="session-two">
+        ${step.requirements.length ? `<div class="session-block tint-blue"><h3>Graded on</h3>${list(step.requirements)}</div>` : ''}
+        ${step.risks.length ? `<div class="session-block warn"><h3>Common mistakes to avoid</h3>${list(step.risks)}</div>` : ''}
+      </div>
+    `;
+  }
+
+  if (step.kind === 'keysteps') {
+    return `
+      ${head}
+      <div class="session-block accent">
+        <h3>Start with</h3>
+        <p>${step.startStep}</p>
+      </div>
+      ${step.outline.length ? `<div class="session-block tint-teal"><h3>Then work through</h3><ol class="step-ol">${step.outline.map((x) => `<li>${x}</li>`).join('')}</ol></div>` : ''}
+    `;
+  }
+
+  // focus
+  const done = state.session.done.includes(step.activityId);
+  return `
+    ${head}
+    <div class="session-focus">
+      <div class="focus-time"><strong>${step.minutes}</strong><span>minutes<br>budget</span></div>
+      <div class="session-block accent">
+        <h3>Do this now</h3>
+        <p>${step.startStep}</p>
+      </div>
+      <div class="session-block tint-blue">
+        <h3>Reach this outcome</h3>
+        <p>${step.outcome}</p>
+      </div>
+      <button class="primary-button wide ${done ? 'is-done' : ''}" data-session-done="${step.activityId}" type="button">${done ? 'Completed ✓ — next' : 'Mark done &amp; continue →'}</button>
+    </div>
+  `;
+}
+
+function renderSession() {
+  if (!sessionRoot) return;
+  if (!state.session.open) {
+    sessionRoot.innerHTML = '';
+    return;
+  }
+
+  if (state.session.loading || !state.session.steps.length) {
+    sessionRoot.innerHTML = `
+      <div class="session-overlay" role="dialog" aria-modal="true" aria-label="Study session">
+        <div class="session-loading"><div class="skeleton" style="width:220px;height:24px"></div><div class="skeleton" style="width:60%;height:48px;margin-top:16px"></div></div>
+      </div>
+    `;
+    return;
+  }
+
+  const steps = state.session.steps;
+  const index = Math.min(state.session.index, steps.length - 1);
+  const step = steps[index];
+  const percent = Math.round((index / (steps.length - 1)) * 100);
+  const prevPercent = state.session._lastPercent;
+  const sharpening = prevPercent !== undefined && prevPercent !== percent;
+  state.session._lastPercent = percent;
+  // The eraser+ferrule+tip caps (40px) are always present; only the wood barrel
+  // after the eraser scales with remaining %. Full barrel at the base, gone at the end.
+  const remaining = Math.max(0, 100 - percent);
+  const startRemaining = sharpening ? Math.max(0, 100 - prevPercent) : remaining;
+  const pencilWidth = (r) => `calc((100% - 40px) * ${(r / 100).toFixed(4)} + 40px)`;
+  const acts = sessionActivities();
+  const currentActivityId = step.activityId;
+  const refStep = step.kind === 'summary' ? null : step;
+
+  const timeline = acts.map((a) => {
+    const activityDone = state.session.done.includes(a.activityId);
+    const isCurrent = a.activityId === currentActivityId;
+    return `
+      <div class="tl-activity ${isCurrent ? 'current' : ''} ${activityDone ? 'done' : ''}">
+        <button class="tl-activity-head" data-session-jump="${a.firstIndex}" type="button">
+          <span class="tl-mark" aria-hidden="true">${activityDone ? '✓' : isCurrent ? '▸' : '○'}</span>
+          <span class="tl-activity-name">${a.activityTitle}<small>${a.minutes} min</small></span>
+        </button>
+        <div class="tl-substeps">
+          ${a.steps.map((s) => `
+            <button class="tl-sub ${s.index === index ? 'active' : ''}" data-session-jump="${s.index}" type="button">
+              ${stepMeta[s.kind].label}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  sessionRoot.innerHTML = `
+    <div class="session-overlay ${state.session.refOpen ? 'ref-open' : ''}" role="dialog" aria-modal="true" aria-label="Study session">
+      <header class="session-top">
+        <button class="ghost-button session-exit" data-session-exit type="button">← Back to plan</button>
+        <div class="session-progress">
+          <div class="pencil-meter" role="progressbar" aria-label="Session progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
+            <div class="pencil" style="width:${startPencilPct}%" aria-hidden="true">
+              <span class="tip"></span>
+              <span class="barrel"></span>
+              <span class="ferrule"></span>
+              <span class="eraser"></span>
+              ${sharpening ? `
+                <span class="sharpener">
+                  <span class="crank"></span>
+                  <span class="shaving"></span>
+                  <span class="shaving shaving-2"></span>
+                  <span class="shaving shaving-3"></span>
+                </span>
+              ` : ''}
+            </div>
+          </div>
+          <div class="session-progress-meta">
+            <span>Step ${index + 1} of ${steps.length}</span>
+            <span>${sessionMinutesLeft()} min left</span>
+          </div>
+        </div>
+        ${refStep ? `<button class="ghost-button session-ref-toggle" data-session-ref type="button" aria-pressed="${state.session.refOpen}">📋 Reference</button>` : '<span class="session-ref-spacer"></span>'}
+      </header>
+
+      <div class="session-body">
+        <aside class="session-timeline" aria-label="Tonight's workflow">
+          <div class="eyebrow">Tonight's workflow</div>
+          ${timeline}
+          <button class="tl-sub tl-finish ${step.kind === 'summary' ? 'active' : ''}" data-session-jump="${steps.length - 1}" type="button">Session complete</button>
+        </aside>
+
+        <main class="session-stage" tabindex="-1">
+          ${sessionStepBody(step)}
+          ${step.kind !== 'summary' ? `
+            <div class="session-nav">
+              <button class="ghost-button" data-session-back type="button" ${index === 0 ? 'disabled' : ''}>← Back</button>
+              <button class="primary-button" data-session-next type="button">Next →</button>
+            </div>
+          ` : ''}
+        </main>
+
+        ${refStep ? `
+          <aside class="session-ref" aria-label="Reference for ${refStep.activityTitle}" ${state.session.refOpen ? '' : 'hidden'}>
+            <div class="session-ref-head">
+              <strong>${refStep.activityTitle}</strong>
+              <button class="icon-button" data-session-ref type="button" aria-label="Close reference">×</button>
+            </div>
+            ${refStep.requirements.length ? `<div class="session-block tint-blue"><h3>Graded on</h3>${list(refStep.requirements)}</div>` : ''}
+            ${refStep.materials.length ? `<div class="session-block tint-green"><h3>Materials</h3>${list(refStep.materials, 'check-list')}</div>` : ''}
+            ${refStep.risks.length ? `<div class="session-block warn"><h3>Avoid</h3>${list(refStep.risks)}</div>` : ''}
+          </aside>
+        ` : ''}
+      </div>
+    </div>
+  `;
+
+  // Re-rendering replaces the pencil node, so it starts at the previous length;
+  // force a reflow to commit that start width, then set the new one so the CSS
+  // width transition animates smoothly instead of teleporting.
+  if (sharpening) {
+    const pencilEl = sessionRoot.querySelector('.pencil');
+    if (pencilEl) {
+      void pencilEl.offsetWidth; // commit the start width
+      pencilEl.style.width = `${pencilPct}%`;
+    }
+  }
+}
+
+async function openSession() {
+  const plan = state.plan?.plan || [];
+  if (!plan.length) {
+    toast('Build a plan first');
+    return;
+  }
+  state.session.open = true;
+  state.session.loading = true;
+  state.session.index = 0;
+  state.session.refOpen = false;
+  document.body.classList.add('session-active');
+  renderSession();
+
+  await Promise.all(plan.map(async (item) => {
+    if (state.assignmentDetails[item.id]) return;
+    try {
+      state.assignmentDetails[item.id] = await api(`/assignments/${encodeURIComponent(item.id)}`);
+    } catch (error) {
+      state.assignmentDetails[item.id] = null;
+    }
+  }));
+
+  state.session.steps = buildSessionSteps(plan, state.assignmentDetails);
+  state.session.loading = false;
+  renderSession();
+  sessionRoot.querySelector('.session-stage')?.focus();
+}
+
+function closeSession() {
+  state.session.open = false;
+  state.session.refOpen = false;
+  document.body.classList.remove('session-active');
+  renderSession();
+  render();
+}
+
+function sessionGo(index) {
+  state.session.index = Math.max(0, Math.min(index, state.session.steps.length - 1));
+  renderSession();
+  sessionRoot.querySelector('.session-stage')?.focus();
+}
+
+function sessionMarkDone(id) {
+  if (!state.session.done.includes(id)) state.session.done.push(id);
+  if (!state.startedActivities.includes(id)) state.startedActivities.push(id);
+  sessionGo(state.session.index + 1);
+}
+
 function renderRadarPage() {
   if (!state.selectedAssignment && state.assignments.length) state.selectedAssignment = state.assignments[0].id;
   const selected = state.assignmentDetails[state.selectedAssignment];
@@ -332,7 +737,7 @@ function renderRadarPage() {
 function assignmentCard(item, active) {
   return `
     <button class="assignment-card ${active ? 'active' : ''}" data-assignment="${item.id}" type="button" aria-pressed="${active}">
-      <div class="chip-row">${chip(item.riskLevel)}${chip(item.type, 'blue')}</div>
+      <div class="chip-row">${chip(item.riskLevel)}${chip(item.type, typeClass(item.type))}</div>
       <h3>${item.title}</h3>
       <p>${item.course}</p>
       <div class="assignment-facts">
@@ -351,7 +756,7 @@ function assignmentDetail(item) {
   return `
     <article class="card detail-panel">
       <div class="eyebrow">Assignment Intelligence</div>
-      <div class="chip-row">${chip(item.riskLevel)}${chip(item.type, 'blue')}${chip(item.dueLabel, 'blue')}</div>
+      <div class="chip-row">${chip(item.riskLevel)}${chip(item.type, typeClass(item.type))}${chip(item.dueLabel, 'blue')}</div>
       <h2>${item.title}</h2>
       <p>${item.course} - ${item.estimatedHours} estimated hours - ${item.completionPercentage}% complete</p>
       <div class="next-action" style="margin-top:16px;padding:18px;border-radius:22px">
@@ -401,7 +806,7 @@ function renderGapsPage() {
         <article class="gap-card">
           <div class="mastery-orb">${gap.mastery}%</div>
           <div>
-            <div class="chip-row">${chip(gap.course, 'blue')}${chip(gap.mastery < 50 ? 'Weak' : gap.mastery < 65 ? 'Developing' : 'Stable')}</div>
+            <div class="chip-row">${chip(gap.course, courseClass(gap.course))}${abilityChip(gap.mastery)}</div>
             <h3>${gap.topic}</h3>
             <p><strong>Where it matters:</strong> ${gap.whereItMatters}</p>
             <p><strong>When:</strong> ${gap.whenItMatters}</p>
@@ -423,7 +828,7 @@ function renderCalendarPage() {
           <article class="timeline-item">
             <div class="meta">${item.day}</div>
             <div>
-              <div class="chip-row">${chip(item.label, 'blue')}${chip(item.pressure)}</div>
+              <div class="chip-row">${chip(item.label, item.type === 'test' ? 'lav' : item.type === 'study' ? 'teal' : 'blue')}${pressureChip(item.pressure)}</div>
               <h3>${item.title}</h3>
               <p>${item.type === 'study' ? 'Study this tonight.' : 'Waiting will make this harder.'}</p>
             </div>
@@ -438,7 +843,7 @@ function renderCalendarPage() {
 function renderSettingsPage() {
   main.innerHTML = pageShell('Settings', 'Choose how The Hub works for you.', `
     <div class="settings-grid">
-      ${settingRow('Google connection status', 'Google sync is not connected.', 'google')}
+      ${googleSettingRow()}
       ${settingRow('Academic integrity mode', 'The Hub plans and teaches starts. It does not produce submissions.', 'integrity')}
       <div class="setting-row">
         <div><strong>Preferred study block length</strong><p>${state.settings.blockLength} minutes</p></div>
@@ -450,6 +855,48 @@ function renderSettingsPage() {
       </div>
     </div>
   `);
+}
+
+function googleSettingRow() {
+  const c = state.classroom;
+  if (c.connected) {
+    const courses = c.courses || [];
+    const courseList = courses.length ? `
+      <div class="classroom-list">
+        ${courses.map((course) => {
+          const next = (course.coursework || [])
+            .filter((w) => w.dueDate)
+            .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
+          return `
+            <div class="classroom-course">
+              <div class="chip-row">${chip(course.name, 'blue')}${chip(`${(course.coursework || []).length} items`)}</div>
+              ${course.section ? `<small>${course.section}</small>` : ''}
+              ${next ? `<p>Next due: <strong>${next.title}</strong> - ${formatDate(next.dueDate)}</p>` : '<p>No upcoming coursework with due dates.</p>'}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : '<p class="meta">No active courses returned from Google Classroom.</p>';
+    return `
+      <div class="setting-row classroom-row">
+        <div>
+          <strong>Google Classroom</strong>
+          <p>Connected as ${c.email || c.name || 'your Google account'} - ${courses.length} ${courses.length === 1 ? 'course' : 'courses'} imported.</p>
+          ${courseList}
+        </div>
+        <button class="ghost-button" data-google-disconnect type="button">Disconnect</button>
+      </div>
+    `;
+  }
+  const note = c.configured === false
+    ? 'Server is missing Google credentials. Add them to server/secrets.json.'
+    : 'Connect your Google Classroom to import real courses and coursework.';
+  return `
+    <div class="setting-row">
+      <div><strong>Google Classroom</strong><p>${note}</p></div>
+      <button class="primary-button" data-google-connect type="button" ${c.configured === false ? 'disabled' : ''}>Connect</button>
+    </div>
+  `;
 }
 
 function settingRow(title, detail, key) {
@@ -519,6 +966,50 @@ async function sendCoach(message) {
   renderCoach();
 }
 
+function connectGoogle() {
+  window.location.href = '/auth/google';
+}
+
+async function disconnectGoogle() {
+  try {
+    await api('/classroom/disconnect', { method: 'POST', body: '{}' });
+  } catch (error) {
+    // ignore; reset locally anyway
+  }
+  state.classroom = { connected: false, configured: state.classroom.configured, email: null, name: null, courses: [] };
+  state.settings.google = false;
+  toast('Disconnected Google Classroom');
+  render();
+}
+
+async function loadClassroom() {
+  try {
+    const status = await api('/classroom/status');
+    if (status.connected) {
+      state.classroom = await api('/classroom');
+    } else {
+      state.classroom = { ...state.classroom, ...status, courses: [] };
+    }
+    state.settings.google = !!state.classroom.connected;
+  } catch (error) {
+    // leave defaults
+  }
+}
+
+function handleGoogleReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const result = params.get('google');
+  if (!result) return;
+  const messages = {
+    connected: 'Google Classroom connected',
+    error: 'Google Classroom connection failed. Try again.',
+    unconfigured: 'Google credentials are not configured on the server.'
+  };
+  if (messages[result]) toast(messages[result]);
+  // Clean the query string so a refresh does not re-toast.
+  window.history.replaceState({}, '', window.location.pathname);
+}
+
 function render() {
   renderNav();
   renderProfile();
@@ -529,9 +1020,12 @@ function render() {
   if (state.page === 'calendar') renderCalendarPage();
   if (state.page === 'settings') renderSettingsPage();
   renderCoach();
+  renderSession();
 }
 
 async function loadData() {
+  handleGoogleReturn();
+  await loadClassroom();
   try {
     const data = await api('/bootstrap');
     state.profile = data.profile;
@@ -570,6 +1064,21 @@ document.addEventListener('click', (event) => {
     selectAssignment(assignmentBtn.dataset.assignment);
   }
 
+  if (event.target.closest('[data-session-open]')) { openSession(); return; }
+  if (event.target.closest('[data-session-exit]')) { closeSession(); return; }
+  if (event.target.closest('[data-session-finish]')) { closeSession(); return; }
+  if (event.target.closest('[data-session-next]')) { sessionGo(state.session.index + 1); return; }
+  if (event.target.closest('[data-session-back]')) { sessionGo(state.session.index - 1); return; }
+  const jumpBtn = event.target.closest('[data-session-jump]');
+  if (jumpBtn) { sessionGo(Number(jumpBtn.dataset.sessionJump)); return; }
+  const doneBtn = event.target.closest('[data-session-done]');
+  if (doneBtn) { sessionMarkDone(doneBtn.dataset.sessionDone); return; }
+  if (event.target.closest('[data-session-ref]')) {
+    state.session.refOpen = !state.session.refOpen;
+    renderSession();
+    return;
+  }
+
   const startBtn = event.target.closest('[data-start-activity]');
   if (startBtn) {
     const id = startBtn.dataset.startActivity;
@@ -578,6 +1087,9 @@ document.addEventListener('click', (event) => {
     if (state.page === 'plan') renderPlanPage();
     toast(startBtn.dataset.startStep);
   }
+
+  if (event.target.closest('[data-google-connect]')) { connectGoogle(); return; }
+  if (event.target.closest('[data-google-disconnect]')) { disconnectGoogle(); return; }
 
   const settingBtn = event.target.closest('[data-setting]');
   if (settingBtn) {
@@ -633,9 +1145,9 @@ $('#profileButton').addEventListener('click', () => {
   renderCoach();
 });
 $('#notifyBtn').addEventListener('click', () => toast('No new alerts. Chemistry still needs attention tonight.'));
-$('#syncGoogleBtn').addEventListener('click', async () => {
-  await api('/sync/google-classroom', { method: 'POST', body: '{}' });
-  toast('Demo data is already synced');
+$('#syncGoogleBtn').addEventListener('click', () => {
+  if (state.classroom.connected) disconnectGoogle();
+  else connectGoogle();
 });
 $('#signOutBtn').addEventListener('click', () => {
   state.signedIn = false;
@@ -660,6 +1172,16 @@ $('#closeCoachBtn').addEventListener('click', () => {
   renderCoach();
 });
 document.addEventListener('keydown', (event) => {
+  if (state.session.open) {
+    if (event.key === 'Escape') {
+      if (state.session.refOpen) { state.session.refOpen = false; renderSession(); }
+      else closeSession();
+      return;
+    }
+    if (event.key === 'ArrowRight') { sessionGo(state.session.index + 1); return; }
+    if (event.key === 'ArrowLeft') { sessionGo(state.session.index - 1); return; }
+    return;
+  }
   if (event.target.id === 'searchInput' && event.key === 'Enter') {
     const query = event.target.value.trim().toLowerCase();
     const match = navItems.find(([, label]) => label.toLowerCase().includes(query));

@@ -5,6 +5,7 @@ const zlib = require('zlib');
 const { profile, calendar } = require('./demoData');
 const { getAssignmentCards, getAssignmentDetail, getLearningGaps } = require('./academicData');
 const { buildPlan, coach } = require('./planner');
+const googleAuth = require('./googleAuth');
 
 const root = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT || 3000);
@@ -118,6 +119,16 @@ async function handleApi(req, res, url) {
   if (req.method === 'POST' && url.pathname === '/api/sync/google-classroom') {
     return send(res, 200, { status: 'demo', message: 'Demo data is already loaded. Configure Google keys for real sync later.' });
   }
+  if (req.method === 'GET' && url.pathname === '/api/classroom/status') {
+    return send(res, 200, googleAuth.status());
+  }
+  if (req.method === 'GET' && url.pathname === '/api/classroom') {
+    return send(res, 200, googleAuth.snapshot());
+  }
+  if (req.method === 'POST' && url.pathname === '/api/classroom/disconnect') {
+    googleAuth.disconnect();
+    return send(res, 200, { connected: false });
+  }
   return notFound(res);
 }
 
@@ -125,6 +136,32 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url);
+
+    if (url.pathname === '/auth/google') {
+      if (!googleAuth.isConfigured()) {
+        res.writeHead(302, { Location: '/?google=unconfigured' });
+        return res.end();
+      }
+      res.writeHead(302, { Location: googleAuth.buildAuthUrl() });
+      return res.end();
+    }
+
+    if (url.pathname === '/auth/google/callback') {
+      const error = url.searchParams.get('error');
+      if (error) {
+        res.writeHead(302, { Location: `/?google=error` });
+        return res.end();
+      }
+      try {
+        await googleAuth.exchangeCode(url.searchParams.get('code'));
+        await googleAuth.importClassroom();
+        res.writeHead(302, { Location: '/?google=connected' });
+      } catch (err) {
+        console.error('Google connect failed:', err.message);
+        res.writeHead(302, { Location: '/?google=error' });
+      }
+      return res.end();
+    }
 
     if (url.pathname === '/' || url.pathname === '/index.html') {
       return serveFile(req, res, path.join(root, 'The Hub.dc.html'));
