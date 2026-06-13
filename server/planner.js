@@ -4,7 +4,6 @@ const energyProfiles = {
   focused: { label: 'Focused', block: 35, difficulty: 1.1, recovery: false },
   normal: { label: 'Normal', block: 30, difficulty: 1, recovery: false },
   tired: { label: 'Tired', block: 25, difficulty: 0.8, recovery: false },
-  burned_out: { label: 'Burned out', block: 12, difficulty: 0.45, recovery: true },
   essentials_only: { label: 'Essentials only', block: 15, difficulty: 0.55, recovery: true }
 };
 
@@ -12,7 +11,6 @@ const goalProfiles = {
   stay_on_track: { label: 'Stay on track', dueWeight: 1.1, masteryWeight: 1 },
   catch_up: { label: 'Catch up', dueWeight: 1.15, masteryWeight: 1.1, recovery: true },
   improve_test_readiness: { label: 'Improve test readiness', dueWeight: 0.9, masteryWeight: 1.45 },
-  avoid_panic: { label: 'Avoid panic', dueWeight: 1.45, masteryWeight: 0.9 },
   minimum_viable_night: { label: 'Minimum viable night', dueWeight: 1.2, masteryWeight: 0.8, recovery: true }
 };
 

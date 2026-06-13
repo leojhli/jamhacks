@@ -28,9 +28,9 @@ The Hub answers: **"What should I do tonight, and what should I ignore?"**
 
 The student selects:
 
-- Available time: 30 min, 60 min, 90 min, 2 hours, or custom
-- Energy level: Focused, Normal, Tired, Burned out, or Essentials only
-- Goal: Stay on track, Catch up, Improve test readiness, Avoid panic, or Minimum viable night
+- Available time: 30 min, 60 min, 2 hours, or custom
+- Energy level: Focused, Normal, Tired, or Essentials only
+- Goal: Stay on track, Catch up, Improve test readiness, or Minimum viable night
 
 The Hub generates:
 
@@ -48,7 +48,7 @@ The Hub generates:
 - **Assignment Radar**: pressure-aware assignment cards with requirements, risks, materials, and first steps.
 - **Learning Gaps**: weak concepts tied to upcoming consequences.
 - **Calendar**: academic pressure timeline, not just dates.
-- **Progress**: simple signals such as panic zones avoided and readiness trend.
+- **Tonight's Progress**: a persistent progress bar appears after the student starts an activity and stays visible across every screen.
 - **Hub Coach**: structured student support using the same planning logic.
 - **Demo Mode**: realistic data loads instantly without Google Classroom.
 
@@ -94,7 +94,6 @@ server/planner.js      Planning and coach logic
 - `GET /api/assignments/:id`
 - `GET /api/learning-gaps`
 - `GET /api/calendar`
-- `GET /api/progress`
 - `POST /api/coach`
 - `GET /api/auth/google`
 - `GET /api/auth/google/callback`
@@ -142,7 +141,7 @@ Google integration is a roadmap item. Demo Mode works without environment variab
 1. Open The Hub.
 2. Show the Plan My Night page.
 3. Select:
-   - 90 minutes
+   - 60 minutes
    - Tired
    - Stay on track
 4. Click Generate My Plan.

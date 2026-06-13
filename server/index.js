@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
-const { profile, assignments, learningGaps, calendar, progress } = require('./demoData');
+const { profile, assignments, learningGaps, calendar } = require('./demoData');
 const { buildPlan, coach } = require('./planner');
 
 const root = path.resolve(__dirname, '..');
@@ -84,7 +84,7 @@ async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { ok: true });
   if (req.method === 'GET' && url.pathname === '/api/profile') return send(res, 200, profile);
   if (req.method === 'GET' && url.pathname === '/api/bootstrap') {
-    return send(res, 200, { profile, assignments, gaps: learningGaps, calendar, progress });
+    return send(res, 200, { profile, assignments, gaps: learningGaps, calendar });
   }
   if (req.method === 'GET' && url.pathname === '/api/assignments') return send(res, 200, assignments);
   if (req.method === 'GET' && url.pathname.startsWith('/api/assignments/')) {
@@ -94,7 +94,6 @@ async function handleApi(req, res, url) {
   }
   if (req.method === 'GET' && url.pathname === '/api/learning-gaps') return send(res, 200, learningGaps);
   if (req.method === 'GET' && url.pathname === '/api/calendar') return send(res, 200, calendar);
-  if (req.method === 'GET' && url.pathname === '/api/progress') return send(res, 200, progress);
   if (req.method === 'POST' && url.pathname === '/api/plan-night') {
     const body = await readBody(req);
     return send(res, 200, buildPlan(body));

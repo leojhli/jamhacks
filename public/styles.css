@@ -194,6 +194,35 @@ summary:focus-visible {
   background: rgba(249, 251, 255, .72);
   border-bottom: 1px solid rgba(20,32,60,.08);
 }
+.tonight-progress {
+  width: min(360px, 34vw);
+  display: grid;
+  gap: 7px;
+}
+.tonight-progress[hidden] { display: none; }
+.tonight-progress-copy {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--slate);
+  font-size: 12px;
+}
+.tonight-progress-copy strong { color: var(--ink); }
+.tonight-progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(10,16,32,.10);
+}
+.tonight-progress-track span {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--teal));
+  transition: width .2s ease-out;
+}
+.topbar:has(.tonight-progress:not([hidden])) .search { width: min(280px, 24vw); }
 .search {
   width: min(520px, 52vw);
   min-height: 46px;
@@ -479,8 +508,7 @@ p { text-wrap: pretty; }
 .plan-item,
 .assignment-card,
 .gap-card,
-.timeline-item,
-.progress-card {
+.timeline-item {
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 16px;
@@ -525,7 +553,6 @@ p { text-wrap: pretty; }
 .chip.blue { color: #214abf; background: var(--blue-soft); border-color: rgba(85,119,255,.18); }
 .chip.dark { color: #fff; background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.14); }
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .assignment-grid { display: grid; grid-template-columns: minmax(300px, .9fr) minmax(420px, 1.1fr); gap: 22px; align-items: start; }
 .assignment-list { display: grid; gap: 12px; }
 .assignment-card {
@@ -777,9 +804,9 @@ p { text-wrap: pretty; }
   .hero-inner,
   .panel-grid,
   .assignment-grid,
-  .two-col,
-  .three-col { grid-template-columns: 1fr; }
+  .two-col { grid-template-columns: 1fr; }
   .detail-panel { position: static; }
+  .topbar:has(.tonight-progress:not([hidden])) .search { display: none; }
 }
 
 @media (max-width: 720px) {
@@ -796,9 +823,10 @@ p { text-wrap: pretty; }
   .brand { display: none; }
   .nav { display: flex; gap: 8px; }
   .nav-button { min-width: 52px; }
-  .topbar { min-height: auto; padding: 10px 14px; }
+  .topbar { top: 76px; min-height: auto; padding: 10px 14px; flex-wrap: wrap; }
+  .tonight-progress { order: -1; width: 100%; }
   .search { display: none; }
-  .top-actions { justify-content: space-between; }
+  .top-actions { width: 100%; justify-content: space-between; }
   main { padding: 16px; }
   .hero, .card { border-radius: 14px; padding: 18px; }
   .hero-inner { gap: 12px; }

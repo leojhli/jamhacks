@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=4">
+  <link rel="stylesheet" href="/styles.css?v=7">
 </head>
 <body>
   <div id="app">
@@ -32,6 +32,15 @@
           <span>Search</span>
           <input id="searchInput" placeholder="Search The Hub" autocomplete="off">
         </label>
+        <div class="tonight-progress" id="tonightProgress" hidden>
+          <div class="tonight-progress-copy">
+            <strong>Tonight's progress</strong>
+            <span id="tonightProgressLabel">0 of 0 activities started</span>
+          </div>
+          <div class="tonight-progress-track" role="progressbar" aria-label="Tonight's activity progress" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+            <span id="tonightProgressFill"></span>
+          </div>
+        </div>
         <div class="top-actions">
           <button class="demo-pill" id="demoModeBtn" type="button" aria-pressed="true">Demo Mode</button>
           <button class="icon-button" id="notifyBtn" type="button" aria-label="Notifications">N</button>
@@ -81,6 +90,6 @@
 
   <button class="coach-fab" id="coachFab" type="button" aria-expanded="false" aria-controls="coachPanel">Hub Coach</button>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
-  <script src="/app.js?v=4"></script>
+  <script src="/app.js?v=7"></script>
 </body>
 </html>

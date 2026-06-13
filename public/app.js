@@ -1,6 +1,6 @@
 const state = {
   page: 'plan',
-  time: 90,
+  time: 60,
   customTime: 75,
   energy: 'tired',
   goal: 'stay_on_track',
@@ -10,7 +10,7 @@ const state = {
   assignments: [],
   gaps: [],
   calendar: [],
-  progress: null,
+  startedActivities: [],
   profile: null,
   demoMode: true,
   signedIn: true,
@@ -33,7 +33,6 @@ const navItems = [
   ['radar', 'Assignment Radar', 'AR'],
   ['gaps', 'Learning Gaps', 'LG'],
   ['calendar', 'Calendar', 'CA'],
-  ['progress', 'Progress', 'PR'],
   ['settings', 'Settings', 'SE']
 ];
 
@@ -41,7 +40,6 @@ const energyOptions = [
   ['focused', 'Focused'],
   ['normal', 'Normal'],
   ['tired', 'Tired'],
-  ['burned_out', 'Burned out'],
   ['essentials_only', 'Essentials only']
 ];
 
@@ -49,7 +47,6 @@ const goalOptions = [
   ['stay_on_track', 'Stay on track'],
   ['catch_up', 'Catch up'],
   ['improve_test_readiness', 'Improve test readiness'],
-  ['avoid_panic', 'Avoid panic'],
   ['minimum_viable_night', 'Minimum viable night']
 ];
 
@@ -115,6 +112,22 @@ function renderProfile() {
   $('#demoModeBtn').setAttribute('aria-pressed', String(state.demoMode));
 }
 
+function renderTonightProgress() {
+  const activities = state.plan?.plan || [];
+  const started = state.startedActivities.filter((id) => activities.some((item) => item.id === id));
+  const total = activities.length;
+  const visible = total > 0 && started.length > 0;
+  const percent = total ? Math.round((started.length / total) * 100) : 0;
+  const progress = $('#tonightProgress');
+
+  progress.hidden = !visible;
+  $('#tonightProgressLabel').textContent = `${started.length} of ${total} activities started`;
+  $('#tonightProgressFill').style.width = `${percent}%`;
+  const track = progress.querySelector('[role="progressbar"]');
+  track.setAttribute('aria-valuemax', String(total));
+  track.setAttribute('aria-valuenow', String(started.length));
+}
+
 function pageShell(title, subtitle, content) {
   return `
     <section class="page">
@@ -173,8 +186,8 @@ function renderPlanPage() {
         <form class="card" id="planForm">
           <fieldset class="control-group">
             <legend class="control-label">Available Time</legend>
-            <div class="option-grid">
-              ${[30, 60, 90, 120].map((m) => optionButton(m, m === 120 ? '2 hours' : `${m} min`, state.time === m, 'time')).join('')}
+            <div class="option-grid compact">
+              ${[30, 60, 120].map((m) => optionButton(m, m === 120 ? '2 hours' : `${m} min`, state.time === m, 'time')).join('')}
               ${optionButton('custom', 'Custom', state.time === 'custom', 'time')}
             </div>
           </fieldset>
@@ -209,7 +222,7 @@ function emptyPlan() {
       <div>
         <div class="eyebrow">Waiting for inputs</div>
         <h2>Your plan will appear here.</h2>
-        <p>For the demo, choose 90 minutes, Tired, and Stay on track.</p>
+        <p>For the demo, choose 60 minutes, Tired, and Stay on track.</p>
       </div>
     </div>
   `;
@@ -241,7 +254,7 @@ function planOutput(result) {
       <div class="eyebrow" style="color:#8cf0de">Next Best Action</div>
       <h2>${result.nextBestAction.title}</h2>
       <p><strong>${result.nextBestAction.minutes} minutes</strong> - ${result.nextBestAction.why}</p>
-      <button class="ghost-button" data-just-start type="button">Just Start</button>
+      <button class="ghost-button" data-start-activity="${result.plan[0].id}" data-start-step="${escapeAttr(result.justStart.step)}" type="button" aria-pressed="${state.startedActivities.includes(result.plan[0].id)}">${state.startedActivities.includes(result.plan[0].id) ? 'Started' : 'Just Start'}</button>
     </div>
     <div class="card">
       <div class="section-head">
@@ -256,7 +269,7 @@ function planOutput(result) {
               <h3>${item.title}</h3>
               <p>${item.course} - ${item.reason}</p>
             </div>
-            <button class="ghost-button" data-start-step="${escapeAttr(item.startStep)}" type="button">Start</button>
+            <button class="ghost-button" data-start-activity="${item.id}" data-start-step="${escapeAttr(item.startStep)}" type="button" aria-pressed="${state.startedActivities.includes(item.id)}">${state.startedActivities.includes(item.id) ? 'Started' : 'Start'}</button>
           </article>
         `).join('')}
       </div>
@@ -386,33 +399,6 @@ function renderCalendarPage() {
   `);
 }
 
-function renderProgressPage() {
-  const p = state.progress || {};
-  main.innerHTML = pageShell('Progress', 'Simple proof that the student is reducing pressure, not just clicking around.', `
-    <div class="three-col">
-      ${progressCard('Tasks completed', p.tasksCompletedThisWeek, 'this week')}
-      ${progressCard('Panic zones avoided', p.panicZonesAvoided, 'by starting earlier')}
-      ${progressCard('Study minutes', p.studyMinutesCompleted, 'completed')}
-    </div>
-    <div class="two-col" style="margin-top:18px">
-      <div class="card">
-        <div class="eyebrow">Readiness trend</div>
-        <div class="progress-line" style="height:14px;margin-top:18px"><span style="--w:74%"></span></div>
-        <p>${(p.readinessTrend || []).join(' -> ')}</p>
-      </div>
-      <div class="card">
-        <div class="eyebrow">Signals</div>
-        <h3>Hardest concept: ${p.hardestConcept || 'Loading'}</h3>
-        <h3>Most improved: ${p.mostImprovedConcept || 'Loading'}</h3>
-      </div>
-    </div>
-  `);
-}
-
-function progressCard(title, value, label) {
-  return `<article class="progress-card"><div class="eyebrow">${title}</div><h1 style="font-size:54px;margin:10px 0">${value ?? '-'}</h1><p>${label}</p></article>`;
-}
-
 function renderSettingsPage() {
   main.innerHTML = pageShell('Settings', 'Keep the MVP demo-first, safe, and configurable.', `
     <div class="settings-grid">
@@ -467,6 +453,7 @@ async function generatePlan() {
       method: 'POST',
       body: JSON.stringify({ availableMinutes: minutes, energy: state.energy, goal: state.goal })
     });
+    state.startedActivities = [];
     toast('Plan generated');
   } catch (error) {
     toast('Could not generate the plan. Try again.');
@@ -500,11 +487,11 @@ async function sendCoach(message) {
 function render() {
   renderNav();
   renderProfile();
+  renderTonightProgress();
   if (state.page === 'plan') renderPlanPage();
   if (state.page === 'radar') renderRadarPage();
   if (state.page === 'gaps') renderGapsPage();
   if (state.page === 'calendar') renderCalendarPage();
-  if (state.page === 'progress') renderProgressPage();
   if (state.page === 'settings') renderSettingsPage();
   renderCoach();
 }
@@ -516,7 +503,6 @@ async function loadData() {
     state.assignments = data.assignments;
     state.gaps = data.gaps;
     state.calendar = data.calendar;
-    state.progress = data.progress;
     state.selectedAssignment = data.assignments[0]?.id || null;
   } catch (error) {
     toast('Demo data failed to load');
@@ -547,9 +533,14 @@ document.addEventListener('click', (event) => {
     render();
   }
 
-  const startBtn = event.target.closest('[data-start-step]');
-  if (startBtn) toast(startBtn.dataset.startStep);
-  if (event.target.closest('[data-just-start]') && state.plan?.justStart) toast(state.plan.justStart.step);
+  const startBtn = event.target.closest('[data-start-activity]');
+  if (startBtn) {
+    const id = startBtn.dataset.startActivity;
+    if (!state.startedActivities.includes(id)) state.startedActivities.push(id);
+    renderTonightProgress();
+    if (state.page === 'plan') renderPlanPage();
+    toast(startBtn.dataset.startStep);
+  }
 
   const settingBtn = event.target.closest('[data-setting]');
   if (settingBtn) {

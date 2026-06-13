@@ -332,13 +332,4 @@ const calendar = [
   { day: 'In 8 days', label: 'Due', type: 'assignment', title: 'Hamlet Themes Presentation', pressure: 'safe' }
 ];
 
-const progress = {
-  tasksCompletedThisWeek: 9,
-  panicZonesAvoided: 3,
-  studyMinutesCompleted: 420,
-  readinessTrend: [61, 63, 66, 68, 71, 74],
-  hardestConcept: 'Chemistry Equilibrium',
-  mostImprovedConcept: 'Historical Causation'
-};
-
-module.exports = { now, profile, assignments, learningGaps, calendar, progress };
+module.exports = { now, profile, assignments, learningGaps, calendar };

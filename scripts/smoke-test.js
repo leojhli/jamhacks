@@ -49,7 +49,7 @@ async function get(path) {
     const assignments = await get('/assignments');
     const gaps = await get('/learning-gaps');
     const plan = await post('/plan-night', {
-      availableMinutes: 90,
+      availableMinutes: 60,
       energy: 'tired',
       goal: 'stay_on_track'
     });
@@ -58,6 +58,7 @@ async function get(path) {
     });
 
     if (!bootstrap.assignments.length || !bootstrap.gaps.length) throw new Error('Bootstrap data missing');
+    if ('progress' in bootstrap) throw new Error('Legacy progress data still returned');
     if (!assignments.length) throw new Error('No assignments returned');
     if (!gaps.length) throw new Error('No learning gaps returned');
     if (!plan.nextBestAction || !plan.plan.length) throw new Error('No plan returned');
