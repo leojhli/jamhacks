@@ -7,6 +7,7 @@ const state = {
   selectedAssignment: null,
   plan: null,
   loadingPlan: false,
+  planRevealing: false,
   assignments: [],
   assignmentDetails: {},
   assignmentLoading: false,
@@ -61,7 +62,6 @@ const navItems = [
   ['plan', 'Plan My Night', navIcons.plan],
   ['radar', 'Assignment Radar', navIcons.radar],
   ['gaps', 'Learning Gaps', navIcons.gaps],
-  ['calendar', 'Calendar', navIcons.calendar],
   ['settings', 'Settings', navIcons.settings]
 ];
 
@@ -236,9 +236,9 @@ function updatePlanOptions(key) {
 }
 
 function renderPlanPage() {
-  const output = state.loadingPlan ? loadingPlan() : state.plan ? planOutput(state.plan) : emptyPlan();
+  const output = state.loadingPlan ? loadingPlan() : state.plan ? planOutput(state.plan) : planCalendarBoard();
   main.innerHTML = `
-    <section class="page">
+    <section class="page plan-page ${state.loadingPlan ? 'is-building-plan' : ''} ${state.plan ? 'plan-ready' : ''} ${state.planRevealing ? 'is-revealing-plan' : ''} ${!state.loadingPlan && !state.plan ? 'awaiting-plan' : ''}">
       <div class="hero">
         <div class="hero-inner">
           <div>
@@ -294,14 +294,34 @@ function renderPlanPage() {
   if (planContext) {
     main.querySelector('.panel-grid')?.append(planContext);
   }
+  if (state.planRevealing) {
+    requestAnimationFrame(() => { state.planRevealing = false; });
+  }
 }
 
-function emptyPlan() {
+function planCalendarBoard() {
+  const items = state.calendar.slice(0, 5);
   return `
-    <div class="empty-state">
-      <div>
-        <div class="eyebrow">Waiting for inputs</div>
-        <h2>Your plan will appear here.</h2>
+    <div class="card calendar-board">
+      <div class="section-head">
+        <div>
+          <div class="eyebrow">Pressure Calendar</div>
+          <h2>Coming Up</h2>
+          <p>Use this to pick the safest plan for tonight.</p>
+        </div>
+      </div>
+      <div class="timeline calendar-preview-list">
+        ${items.map((item) => `
+          <article class="timeline-item">
+            <div class="meta">${item.day}</div>
+            <div>
+              <div class="chip-row">${chip(item.label, item.type === 'test' ? 'lav' : item.type === 'study' ? 'teal' : 'blue')}${pressureChip(item.pressure)}</div>
+              <h3>${item.title}</h3>
+              <p>${item.type === 'study' ? 'Study this tonight.' : 'Waiting will make this harder.'}</p>
+            </div>
+            <span class="pressure ${item.pressure}"></span>
+          </article>
+        `).join('')}
       </div>
     </div>
   `;
@@ -329,6 +349,7 @@ function planOutput(result) {
   ` : '';
 
   return `
+    <button class="ghost-button plan-back-button" data-edit-plan type="button">&larr; Back to Plan My Night</button>
     <div class="next-action">
       <div class="eyebrow" style="color:#8cf0de">Start here</div>
       <h2>${result.nextBestAction.title}</h2>
@@ -341,18 +362,25 @@ function planOutput(result) {
       </div>
       <div class="plan-list">
         ${result.plan.map((item) => `
-          <article class="plan-item">
-            <div class="time-chip">${item.minutes}<br>min</div>
-            <div>
-              <div class="chip-row">${chip(item.priority)}${chip(item.zone)}</div>
-              <h3>${item.title}</h3>
-              <p>${item.course} - ${item.reason}</p>
+          <details class="plan-item">
+            <summary class="plan-item-summary">
+              <div class="time-chip">${item.minutes}<br>min</div>
+              <div>
+                <div class="chip-row">${chip(item.priority)}${chip(item.zone)}</div>
+                <h3>${item.title}</h3>
+                <p>${item.course} - ${item.reason}</p>
+              </div>
+              <span class="plan-disclosure" aria-hidden="true">Open</span>
+            </summary>
+            <div class="plan-quick-summary">
+              <strong>Quick summary</strong>
+              <p>${item.startStep}</p>
+              ${item.basedOn?.summary ? `<small>${item.basedOn.summary}</small>` : ''}
             </div>
-            <button class="ghost-button" data-start-activity="${item.id}" data-start-step="${escapeAttr(item.startStep)}" type="button" aria-pressed="${state.startedActivities.includes(item.id)}">${state.startedActivities.includes(item.id) ? 'Started' : 'Start'}</button>
-          </article>
+          </details>
         `).join('')}
       </div>
-      <button class="primary-button wide session-start" data-session-open type="button">Start Session →</button>
+      <button class="primary-button wide session-start" data-session-open type="button">Start Session &rarr;</button>
     </div>
     <details class="card plan-context">
       <summary>More context for tonight</summary>
@@ -470,8 +498,8 @@ function sessionStepBody(step) {
         <div class="summary-list">
           ${acts.map((a) => `
             <div class="summary-row ${state.session.done.includes(a.activityId) ? 'is-done' : ''}">
-              <span class="summary-mark" aria-hidden="true">${state.session.done.includes(a.activityId) ? '✓' : '○'}</span>
-              <div><strong>${a.activityTitle}</strong><small>${a.course} · ${a.minutes} min</small></div>
+              <span class="summary-mark" aria-hidden="true">${state.session.done.includes(a.activityId) ? "Done" : "Open"}</span>
+              <div><strong>${a.activityTitle}</strong><small>${a.course} - ${a.minutes} min</small></div>
             </div>
           `).join('')}
         </div>
@@ -549,7 +577,7 @@ function sessionStepBody(step) {
         <h3>Reach this outcome</h3>
         <p>${step.outcome}</p>
       </div>
-      <button class="primary-button wide ${done ? 'is-done' : ''}" data-session-done="${step.activityId}" type="button">${done ? 'Completed ✓ — next' : 'Mark done &amp; continue →'}</button>
+      <button class="primary-button wide ${done ? 'is-done' : ''}" data-session-done="${step.activityId}" type="button">${done ? 'Completed - next' : 'Mark done &amp; continue'}</button>
     </div>
   `;
 }
@@ -595,7 +623,7 @@ function renderSession() {
     return `
       <div class="tl-activity ${isCurrent ? 'current' : ''} ${activityDone ? 'done' : ''}">
         <button class="tl-activity-head" data-session-jump="${a.firstIndex}" type="button">
-          <span class="tl-mark" aria-hidden="true">${activityDone ? '✓' : isCurrent ? '▸' : '○'}</span>
+          <span class="tl-mark" aria-hidden="true">${activityDone ? 'Done' : isCurrent ? 'Now' : 'Open'}</span>
           <span class="tl-activity-name">${a.activityTitle}<small>${a.minutes} min</small></span>
         </button>
         <div class="tl-substeps">
@@ -612,8 +640,8 @@ function renderSession() {
   sessionRoot.innerHTML = `
     <div class="session-overlay ${state.session.refOpen ? 'ref-open' : ''}" role="dialog" aria-modal="true" aria-label="Study session">
       <header class="session-top">
-        <button class="ghost-button session-exit" data-session-exit type="button">← Back to plan</button>
-        ${refStep ? `<button class="ghost-button session-ref-toggle" data-session-ref type="button" aria-pressed="${state.session.refOpen}">📋 Reference</button>` : '<span class="session-ref-spacer"></span>'}
+        <button class="ghost-button session-exit" data-session-exit type="button">&larr; Back to plan</button>
+        ${refStep ? `<button class="ghost-button session-ref-toggle" data-session-ref type="button" aria-pressed="${state.session.refOpen}">Reference</button>` : '<span class="session-ref-spacer"></span>'}
       </header>
 
       <div class="session-body">
@@ -649,8 +677,8 @@ function renderSession() {
           ${sessionStepBody(step)}
           ${step.kind !== 'summary' && step.kind !== 'focus' ? `
             <div class="session-nav">
-              <button class="ghost-button" data-session-back type="button" ${index === 0 ? 'disabled' : ''}>← Back</button>
-              <button class="primary-button" data-session-next type="button">Next →</button>
+              <button class="ghost-button" data-session-back type="button" ${index === 0 ? 'disabled' : ''}>&larr; Back</button>
+              <button class="primary-button" data-session-next type="button">Next &rarr;</button>
             </div>
           ` : ''}
         </main>
@@ -659,7 +687,7 @@ function renderSession() {
           <aside class="session-ref" aria-label="Reference for ${refStep.activityTitle}" ${state.session.refOpen ? '' : 'hidden'}>
             <div class="session-ref-head">
               <strong>${refStep.activityTitle}</strong>
-              <button class="icon-button" data-session-ref type="button" aria-label="Close reference">×</button>
+              <button class="icon-button" data-session-ref type="button" aria-label="Close reference">x</button>
             </div>
             ${refStep.requirements.length ? `<div class="session-block tint-blue"><h3>Graded on</h3>${list(refStep.requirements)}</div>` : ''}
             ${refStep.materials.length ? `<div class="session-block tint-green"><h3>Materials</h3>${list(refStep.materials, 'check-list')}</div>` : ''}
@@ -1016,6 +1044,7 @@ async function generatePlan() {
       body: JSON.stringify({ availableMinutes: minutes, energy: state.energy, goal: state.goal })
     });
     state.startedActivities = [];
+    state.planRevealing = true;
     toast('Plan ready');
   } catch (error) {
     toast('Could not generate the plan. Try again.');
@@ -1097,7 +1126,6 @@ function render() {
   if (state.page === 'plan') renderPlanPage();
   if (state.page === 'radar') renderRadarPage();
   if (state.page === 'gaps') renderGapsPage();
-  if (state.page === 'calendar') renderCalendarPage();
   if (state.page === 'settings') renderSettingsPage();
   renderCoach();
   renderSession();
@@ -1156,6 +1184,16 @@ document.addEventListener('click', (event) => {
   if (event.target.closest('[data-session-ref]')) {
     state.session.refOpen = !state.session.refOpen;
     renderSession();
+    return;
+  }
+
+  if (event.target.closest('[data-edit-plan]')) {
+    state.plan = null;
+    state.planRevealing = false;
+    state.startedActivities = [];
+    closeSession();
+    render();
+    main.focus();
     return;
   }
 

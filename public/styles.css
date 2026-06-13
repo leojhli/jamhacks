@@ -459,6 +459,132 @@ p { text-wrap: pretty; }
 
 .panel-grid { display: grid; grid-template-columns: minmax(0, .92fr) minmax(420px, 1.08fr); gap: 22px; margin-top: 22px; }
 .panel-grid > .plan-context { grid-column: 1 / -1; }
+.plan-page.plan-ready .panel-grid {
+  grid-template-columns: 1fr;
+  margin-top: 0;
+}
+.plan-page.plan-ready .hero {
+  max-height: 0;
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transform: translateY(-12px) scale(.98);
+  transition: opacity .22s var(--ease-out-quart), transform .22s var(--ease-out-quart), max-height .22s var(--ease-out-quart);
+}
+.plan-page.plan-ready #planForm {
+  display: none;
+}
+.plan-page.plan-ready .output-stack {
+  grid-column: 1 / -1;
+  gap: 22px;
+}
+.plan-back-button {
+  justify-self: start;
+  min-height: 44px;
+}
+.plan-page.is-building-plan #planForm {
+  pointer-events: none;
+  animation: clipboardFadeOut .28s var(--ease-out-quart) both;
+}
+.plan-page.is-building-plan .output-stack {
+  animation: resultWarmup .24s var(--ease-out-quart) both;
+}
+.plan-page.is-revealing-plan .next-action {
+  animation: blackboardTakeover .44s var(--ease-out-expo) both;
+}
+.plan-page.is-revealing-plan .card.whiteboard {
+  animation: whiteboardTakeover .5s var(--ease-out-expo) both;
+}
+.plan-page.plan-ready .next-action {
+  min-height: 260px;
+  padding: clamp(28px, 4vw, 46px);
+}
+.plan-page.plan-ready .next-action h2 {
+  font-size: clamp(42px, 5vw, 72px);
+  max-width: 900px;
+}
+.plan-page.plan-ready .next-action p {
+  max-width: 760px;
+  font-size: 20px;
+}
+.plan-page.plan-ready .card.whiteboard {
+  padding: clamp(28px, 4vw, 46px) clamp(24px, 4vw, 44px) 42px;
+}
+.plan-page.plan-ready .card.whiteboard .section-head h2 {
+  font-size: clamp(34px, 4vw, 58px);
+  letter-spacing: -.025em;
+}
+.plan-page.plan-ready .card.whiteboard .section-head p {
+  max-width: 760px;
+  font-size: 18px;
+}
+.plan-page.plan-ready .plan-list {
+  gap: 16px;
+}
+.plan-page.plan-ready .plan-item {
+  padding: 26px 24px;
+  border-left-width: 8px;
+}
+.plan-page.plan-ready .plan-item-summary {
+  grid-template-columns: 76px 1fr auto;
+  gap: 20px;
+}
+.plan-page.plan-ready .plan-item h3 {
+  font-size: clamp(34px, 4.2vw, 58px);
+  line-height: .98;
+  letter-spacing: -.035em;
+  margin-bottom: 12px;
+}
+.plan-page.plan-ready .plan-item p {
+  font-size: 16px;
+}
+.plan-page.plan-ready .time-chip {
+  width: 76px;
+  height: 76px;
+  font-size: 18px;
+}
+.plan-page.plan-ready .plan-quick-summary {
+  margin-left: 96px;
+  font-size: 17px;
+}
+.calendar-board {
+  min-height: 100%;
+}
+.calendar-board .section-head {
+  align-items: flex-start;
+}
+.calendar-preview-list {
+  gap: 10px;
+}
+.calendar-preview-list .timeline-item {
+  grid-template-columns: 78px 1fr auto;
+  padding: 14px;
+}
+.calendar-preview-list h3 {
+  font-size: 15px;
+}
+.calendar-preview-list p {
+  margin-bottom: 0;
+}
+
+@keyframes clipboardFadeOut {
+  from { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  to { opacity: 0; transform: translateY(18px) scale(.96); filter: blur(2px); }
+}
+@keyframes resultWarmup {
+  from { opacity: .45; transform: translateY(8px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes blackboardTakeover {
+  from { opacity: 0; transform: translateY(22px) scale(.86); filter: blur(3px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
+@keyframes whiteboardTakeover {
+  from { opacity: 0; transform: translateY(30px) scale(.9); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+}
 
 /* ----- .card = spiral notebook (default school object) ----- */
 .card {
@@ -737,15 +863,80 @@ p { text-wrap: pretty; }
   background: var(--paper-2);
 }
 .plan-item {
-  display: grid;
-  grid-template-columns: 58px 1fr auto;
-  gap: 14px;
-  align-items: center;
+  display: block;
   border-left: 5px solid var(--red);
   box-shadow: var(--shadow-sm);
   transition: transform .14s ease-out;
 }
 .plan-item:hover { transform: translateX(3px); }
+.plan-item[open] {
+  border-left-color: var(--blue);
+}
+.plan-item-summary {
+  display: grid;
+  grid-template-columns: 58px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+}
+.plan-item-summary::-webkit-details-marker { display: none; }
+.plan-disclosure {
+  align-self: center;
+  padding: 7px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  box-shadow: var(--shadow-sm);
+}
+.plan-item[open] .plan-disclosure {
+  background: var(--blue);
+  color: #fff;
+}
+.plan-item[open] .plan-disclosure::before {
+  content: "Close";
+  font-size: 0;
+}
+.plan-item[open] .plan-disclosure {
+  font-size: 0;
+}
+.plan-item[open] .plan-disclosure::after {
+  content: "Close";
+  font-size: 11px;
+}
+.plan-quick-summary {
+  margin-top: 16px;
+  margin-left: 72px;
+  padding: 14px 16px;
+  border: 2px dashed var(--cork-dark);
+  border-radius: 8px;
+  background: rgba(251, 243, 223, .78);
+  color: var(--ink);
+  animation: soft-reveal .18s var(--ease-out-quart) both;
+}
+.plan-quick-summary strong {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.plan-quick-summary p {
+  margin-bottom: 8px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+.plan-quick-summary small {
+  display: block;
+  color: var(--slate);
+  line-height: 1.45;
+}
 
 /* Time chip = day tab */
 .time-chip {
@@ -1353,6 +1544,39 @@ p { text-wrap: pretty; }
   .decision-card { display: none; }
   .option-grid, .option-grid.compact { grid-template-columns: 1fr 1fr; }
   .plan-item, .gap-card, .timeline-item { grid-template-columns: 1fr; }
+  .plan-page.plan-ready .next-action {
+    min-height: 0;
+    padding: 22px;
+  }
+  .plan-page.plan-ready .next-action h2 {
+    font-size: 34px;
+  }
+  .plan-page.plan-ready .card.whiteboard {
+    padding: 24px 16px 28px;
+  }
+  .plan-page.plan-ready .card.whiteboard .section-head h2 {
+    font-size: 32px;
+  }
+  .plan-page.plan-ready .plan-item {
+    padding: 16px;
+  }
+  .plan-page.plan-ready .plan-item-summary {
+    grid-template-columns: 1fr;
+  }
+  .plan-page.plan-ready .plan-item h3 {
+    font-size: 34px;
+    line-height: 1.02;
+  }
+  .plan-page.plan-ready .plan-quick-summary {
+    margin-left: 0;
+  }
+  .plan-page.plan-ready .time-chip {
+    width: 64px;
+    height: 64px;
+  }
+  .calendar-preview-list .timeline-item {
+    grid-template-columns: 1fr;
+  }
   .profile-copy { display: none; }
   .coach { right: 12px; bottom: 84px; width: calc(100vw - 24px); max-height: calc(100dvh - 104px); }
   .coach-fab { right: 12px; bottom: 12px; width: 62px; height: 62px; padding: 4px; }
