@@ -652,4 +652,20 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+// Idle ambient motion: when the user goes still on a data screen, gently
+// animate the sticky notes, flashcards and tabs. Any input wakes it back up.
+let idleTimer;
+function setIdle(on) {
+  document.body.classList.toggle('is-idle', on);
+}
+function pokeIdle() {
+  setIdle(false);
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => setIdle(true), 4000);
+}
+['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart', 'focusin'].forEach((evt) => {
+  document.addEventListener(evt, pokeIdle, { passive: true });
+});
+pokeIdle();
+
 loadData();
