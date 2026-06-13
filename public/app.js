@@ -19,7 +19,11 @@ const state = {
     steps: [],
     index: 0,
     done: [],
-    refOpen: false
+    advances: {},
+    refOpen: false,
+    sharpening: false,
+    sharpenFrom: 100,
+    sharpenTimer: null
   },
   profile: null,
   classroom: { connected: false, configured: true, email: null, name: null, courses: [] },
@@ -436,10 +440,16 @@ function sessionActivities() {
 }
 
 function sessionMinutesLeft() {
-  const plan = state.plan?.plan || [];
-  return plan
-    .filter((item) => !state.session.done.includes(item.id))
-    .reduce((sum, item) => sum + item.minutes, 0);
+  const total = (state.plan?.plan || []).reduce((sum, item) => sum + item.minutes, 0);
+  return Math.max(0, total - sessionProgressMinutes());
+}
+
+function sessionProgressMinutes() {
+  return sessionActivities().reduce((sum, activity) => {
+    const totalAdvances = Math.max(1, activity.steps.length - 1);
+    const completedAdvances = Math.min(totalAdvances, (state.session.advances[activity.activityId] || []).length);
+    return sum + activity.minutes * (completedAdvances / totalAdvances);
+  }, 0);
 }
 
 function list(items, cls = '') {
@@ -562,15 +572,14 @@ function renderSession() {
   const steps = state.session.steps;
   const index = Math.min(state.session.index, steps.length - 1);
   const step = steps[index];
-  const percent = Math.round((index / (steps.length - 1)) * 100);
-  const prevPercent = state.session._lastPercent;
-  const sharpening = prevPercent !== undefined && prevPercent !== percent;
-  state.session._lastPercent = percent;
-  // The eraser+ferrule+tip caps (40px) are always present; only the wood barrel
-  // after the eraser scales with remaining %. Full barrel at the base, gone at the end.
-  const remaining = Math.max(0, 100 - percent);
-  const startRemaining = sharpening ? Math.max(0, 100 - prevPercent) : remaining;
-  const pencilWidth = (r) => `calc((100% - 40px) * ${(r / 100).toFixed(4)} + 40px)`;
+  const plan = state.plan?.plan || [];
+  const totalMinutes = plan.reduce((sum, item) => sum + item.minutes, 0);
+  const completedMinutes = sessionProgressMinutes();
+  const percent = totalMinutes ? Math.round((completedMinutes / totalMinutes) * 100) : 0;
+  const remaining = totalMinutes ? Math.max(0, 100 - (completedMinutes / totalMinutes) * 100) : 100;
+  const pencilWidth = `calc((100% - 18px) * ${(remaining / 100).toFixed(4)})`;
+  const pencilStartWidth = `calc((100% - 18px) * ${(state.session.sharpenFrom / 100).toFixed(4)})`;
+  const sharpening = state.session.sharpening;
   const acts = sessionActivities();
   const currentActivityId = step.activityId;
   const refStep = step.kind === 'summary' ? null : step;
@@ -601,11 +610,10 @@ function renderSession() {
         <button class="ghost-button session-exit" data-session-exit type="button">← Back to plan</button>
         <div class="session-progress">
           <div class="pencil-meter" role="progressbar" aria-label="Session progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
-            <div class="pencil" style="width:${startPencilPct}%" aria-hidden="true">
+            <div class="pencil ${sharpening ? 'is-sharpening' : ''} ${remaining === 0 ? 'spent' : ''}" style="width:${pencilWidth};--pencil-from:${pencilStartWidth}" aria-hidden="true">
               <span class="tip"></span>
               <span class="barrel"></span>
               <span class="ferrule"></span>
-              <span class="eraser"></span>
               ${sharpening ? `
                 <span class="sharpener">
                   <span class="crank"></span>
@@ -615,10 +623,11 @@ function renderSession() {
                 </span>
               ` : ''}
             </div>
+            <span class="pencil-eraser" aria-hidden="true"></span>
           </div>
           <div class="session-progress-meta">
-            <span>Step ${index + 1} of ${steps.length}</span>
-            <span>${sessionMinutesLeft()} min left</span>
+            <span>${Math.round(completedMinutes)} of ${totalMinutes} min completed</span>
+            <span>${Math.round(sessionMinutesLeft())} min left</span>
           </div>
         </div>
         ${refStep ? `<button class="ghost-button session-ref-toggle" data-session-ref type="button" aria-pressed="${state.session.refOpen}">📋 Reference</button>` : '<span class="session-ref-spacer"></span>'}
@@ -633,7 +642,7 @@ function renderSession() {
 
         <main class="session-stage" tabindex="-1">
           ${sessionStepBody(step)}
-          ${step.kind !== 'summary' ? `
+          ${step.kind !== 'summary' && step.kind !== 'focus' ? `
             <div class="session-nav">
               <button class="ghost-button" data-session-back type="button" ${index === 0 ? 'disabled' : ''}>← Back</button>
               <button class="primary-button" data-session-next type="button">Next →</button>
@@ -656,16 +665,6 @@ function renderSession() {
     </div>
   `;
 
-  // Re-rendering replaces the pencil node, so it starts at the previous length;
-  // force a reflow to commit that start width, then set the new one so the CSS
-  // width transition animates smoothly instead of teleporting.
-  if (sharpening) {
-    const pencilEl = sessionRoot.querySelector('.pencil');
-    if (pencilEl) {
-      void pencilEl.offsetWidth; // commit the start width
-      pencilEl.style.width = `${pencilPct}%`;
-    }
-  }
 }
 
 async function openSession() {
@@ -677,7 +676,12 @@ async function openSession() {
   state.session.open = true;
   state.session.loading = true;
   state.session.index = 0;
+  state.session.done = [];
+  state.session.advances = {};
   state.session.refOpen = false;
+  state.session.sharpening = false;
+  state.session.sharpenFrom = 100;
+  clearTimeout(state.session.sharpenTimer);
   document.body.classList.add('session-active');
   renderSession();
 
@@ -699,6 +703,8 @@ async function openSession() {
 function closeSession() {
   state.session.open = false;
   state.session.refOpen = false;
+  state.session.sharpening = false;
+  clearTimeout(state.session.sharpenTimer);
   document.body.classList.remove('session-active');
   renderSession();
   render();
@@ -710,8 +716,41 @@ function sessionGo(index) {
   sessionRoot.querySelector('.session-stage')?.focus();
 }
 
+function sessionNext() {
+  const current = state.session.steps[state.session.index];
+  const next = state.session.steps[state.session.index + 1];
+  if (!current || !next) return;
+
+  if (current.activityId && current.activityId === next.activityId) {
+    const activitySteps = state.session.steps.filter((item) => item.activityId === current.activityId);
+    const totalAdvances = Math.max(1, activitySteps.length - 1);
+    const advanceNumber = activitySteps.indexOf(next);
+    state.session.advances ||= {};
+    const completedAdvances = state.session.advances[current.activityId] || [];
+
+    if (advanceNumber > 0 && advanceNumber <= totalAdvances && !completedAdvances.includes(advanceNumber)) {
+      const totalMinutes = (state.plan?.plan || []).reduce((sum, item) => sum + item.minutes, 0);
+      const completedBefore = sessionProgressMinutes();
+      state.session.sharpenFrom = totalMinutes ? Math.max(0, 100 - (completedBefore / totalMinutes) * 100) : 100;
+      state.session.advances[current.activityId] = [...completedAdvances, advanceNumber];
+      state.session.sharpening = true;
+      clearTimeout(state.session.sharpenTimer);
+      state.session.sharpenTimer = setTimeout(() => {
+        state.session.sharpening = false;
+        renderSession();
+      }, 2400);
+    }
+  }
+
+  sessionGo(state.session.index + 1);
+}
+
 function sessionMarkDone(id) {
-  if (!state.session.done.includes(id)) state.session.done.push(id);
+  if (state.session.done.includes(id)) {
+    sessionGo(state.session.index + 1);
+    return;
+  }
+  state.session.done.push(id);
   if (!state.startedActivities.includes(id)) state.startedActivities.push(id);
   sessionGo(state.session.index + 1);
 }
@@ -1067,7 +1106,7 @@ document.addEventListener('click', (event) => {
   if (event.target.closest('[data-session-open]')) { openSession(); return; }
   if (event.target.closest('[data-session-exit]')) { closeSession(); return; }
   if (event.target.closest('[data-session-finish]')) { closeSession(); return; }
-  if (event.target.closest('[data-session-next]')) { sessionGo(state.session.index + 1); return; }
+  if (event.target.closest('[data-session-next]')) { sessionNext(); return; }
   if (event.target.closest('[data-session-back]')) { sessionGo(state.session.index - 1); return; }
   const jumpBtn = event.target.closest('[data-session-jump]');
   if (jumpBtn) { sessionGo(Number(jumpBtn.dataset.sessionJump)); return; }
@@ -1178,7 +1217,7 @@ document.addEventListener('keydown', (event) => {
       else closeSession();
       return;
     }
-    if (event.key === 'ArrowRight') { sessionGo(state.session.index + 1); return; }
+    if (event.key === 'ArrowRight') { sessionNext(); return; }
     if (event.key === 'ArrowLeft') { sessionGo(state.session.index - 1); return; }
     return;
   }

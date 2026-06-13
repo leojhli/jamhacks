@@ -1432,21 +1432,43 @@ body.session-active { overflow: hidden; }
 .session-exit { min-height: 40px; }
 .session-progress { flex: 1; display: grid; gap: 6px; max-width: 720px; margin: 0 auto; }
 
-/* Progress = a sharpener that travels RIGHT, eating the pencil; eraser stays put */
+/* Progress = completed minutes sharpen away the pencil; eraser stays put */
 .pencil-meter {
   position: relative;
   height: 40px;
 }
 .pencil {
   position: absolute;
-  right: 4px;                 /* eraser end is pinned here and never moves */
+  right: 22px;
   top: 50%;
   transform: translateY(-50%);
   height: 20px;
-  min-width: 42px;            /* a fresh stub at 0% (tip + ferrule + eraser caps) */
+  min-width: 0;
   display: flex;
   align-items: center;
-  transition: width 1.8s cubic-bezier(.4, .05, .2, 1);
+}
+.pencil.is-sharpening {
+  animation: pencil-shrink 2.4s cubic-bezier(.4, .05, .2, 1) forwards;
+}
+.pencil.spent .tip,
+.pencil.spent .barrel,
+.pencil.spent .ferrule {
+  opacity: 0;
+}
+.pencil-eraser {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  width: 18px;
+  height: 20px;
+  transform: translateY(-50%);
+  background: #ff8aa0;
+  border: 2px solid var(--ink);
+  border-radius: 0 9px 9px 0;
+  box-shadow: inset 0 3px 0 rgba(255,255,255,.26);
+}
+@keyframes pencil-shrink {
+  from { width: var(--pencil-from); }
 }
 /* sharpened tip: wood cone with a graphite point, aims left */
 .pencil .tip {
@@ -1570,14 +1592,6 @@ body.session-active { overflow: hidden; }
   background: var(--metal);
   border: 2px solid var(--ink);
   border-left: 0;
-}
-.pencil .eraser {           /* pink eraser at the back — stays pinned right */
-  flex: 0 0 14px;
-  height: 20px;
-  background: #ff8aa0;
-  border: 2px solid var(--ink);
-  border-left: 0;
-  border-radius: 0 9px 9px 0;
 }
 .session-progress-meta {
   display: flex;

@@ -1,3 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Hub - Know what to do next</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=37">
+  <link rel="stylesheet" href="/styles.css?v=38">
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><img src="/assets/grape-mascot.png?v=4" alt=""></div>
+        <div><strong>The Hub</strong><small>Calm planning</small></div>
+      </div>
+      <nav id="nav" class="nav"></nav>
+      <div class="integrity-note">
+        <span>Integrity Mode</span>
+        <p>The Hub helps you plan and start. You do the learning.</p>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <label class="search">
+          <span>Search</span>
+          <input id="searchInput" placeholder="Search The Hub" autocomplete="off">
+        </label>
+        <div class="tonight-progress" id="tonightProgress" hidden>
+          <div class="tonight-progress-copy">
+            <strong>Tonight's progress</strong>
+            <span id="tonightProgressLabel">0 of 0 activities started</span>
+          </div>
+          <div class="tonight-progress-track" role="progressbar" aria-label="Tonight's activity progress" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+            <span id="tonightProgressFill"></span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <button class="demo-pill" id="demoModeBtn" type="button" aria-pressed="true">Demo Mode</button>
+          <button class="icon-button" id="notifyBtn" type="button" aria-label="Notifications">N</button>
+          <div class="profile-wrap">
+            <button class="profile-button" id="profileButton" type="button" aria-expanded="false" aria-controls="profileMenu">
+              <span class="avatar">AC</span>
+              <span class="profile-copy"><strong>Alex Chen</strong><small>Grade 12</small></span>
+            </button>
+            <div class="profile-menu" id="profileMenu" hidden>
+              <div id="signedInProfile">
+                <strong>Alex Chen</strong>
+                <small>alex.chen@school.edu</small>
+                <button type="button" id="syncGoogleBtn">Connect Google Classroom</button>
+                <button type="button" id="signOutBtn">Sign out</button>
+              </div>
+              <div id="signedOutProfile" hidden>
+                <button type="button" id="signInBtn">Sign in with Google</button>
+                <button type="button" id="continueDemoBtn">Continue in Demo Mode</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="main" tabindex="-1"></main>
+    </div>
+  </div>
+
+  <section class="coach" id="coachPanel" aria-label="Hub Coach" hidden>
+    <header>
+      <img class="coach-mascot" src="/assets/grape-mascot.png?v=4" alt="">
+      <div class="coach-heading"><strong>Hub Coach</strong><small>Plan it. Start it. Keep moving.</small></div>
+      <button class="icon-button" id="closeCoachBtn" type="button" aria-label="Close Hub Coach">x</button>
+    </header>
+    <div class="coach-log" id="coachLog" aria-live="polite"></div>
+    <form class="coach-form" id="coachForm">
+      <div class="coach-chips" id="coachChips"></div>
+      <div class="coach-input-row">
+        <label class="sr-only" for="coachInput">Message Hub Coach</label>
+        <input id="coachInput" placeholder="I have 45 minutes and I'm tired..." autocomplete="off">
+        <button class="primary-button" type="submit">Send</button>
+      </div>
+    </form>
+  </section>
+
+  <button class="coach-fab" id="coachFab" type="button" aria-label="Talk to Hub Coach" aria-expanded="false" aria-controls="coachPanel">
+    <img src="/assets/grape-mascot.png?v=4" alt="">
+  </button>
+  <div id="sessionRoot"></div>
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+  <script src="/app.js?v=19"></script>
+</body>
+</html>
