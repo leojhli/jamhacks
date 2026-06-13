@@ -615,7 +615,18 @@ function renderSession() {
     <div class="session-overlay ${state.session.refOpen ? 'ref-open' : ''}" role="dialog" aria-modal="true" aria-label="Study session">
       <header class="session-top">
         <button class="ghost-button session-exit" data-session-exit type="button">← Back to plan</button>
-        <div class="session-progress">
+        ${refStep ? `<button class="ghost-button session-ref-toggle" data-session-ref type="button" aria-pressed="${state.session.refOpen}">📋 Reference</button>` : '<span class="session-ref-spacer"></span>'}
+      </header>
+
+      <div class="session-body">
+        <aside class="session-timeline" aria-label="Tonight's workflow">
+          <div class="eyebrow">Tonight's workflow</div>
+          ${timeline}
+          <button class="tl-sub tl-finish ${step.kind === 'summary' ? 'active' : ''}" data-session-jump="${steps.length - 1}" type="button">Session complete</button>
+        </aside>
+
+        <main class="session-stage" tabindex="-1">
+          <div class="session-progress session-progress-stage">
           <div class="pencil-meter" role="progressbar" aria-label="Session progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
             <div class="pencil ${sharpening ? 'is-sharpening' : ''} ${growing ? 'is-growing' : ''} ${spent && !sharpening ? 'spent' : ''}" style="width:${pencilWidth};--pencil-from:${pencilStartWidth};--pencil-grow-from:${pencilGrowWidth}" aria-hidden="true">
               <span class="tip"></span>
@@ -636,18 +647,7 @@ function renderSession() {
             <span>${Math.round(completedMinutes)} of ${totalMinutes} min completed</span>
             <span>${Math.round(sessionMinutesLeft())} min left</span>
           </div>
-        </div>
-        ${refStep ? `<button class="ghost-button session-ref-toggle" data-session-ref type="button" aria-pressed="${state.session.refOpen}">📋 Reference</button>` : '<span class="session-ref-spacer"></span>'}
-      </header>
-
-      <div class="session-body">
-        <aside class="session-timeline" aria-label="Tonight's workflow">
-          <div class="eyebrow">Tonight's workflow</div>
-          ${timeline}
-          <button class="tl-sub tl-finish ${step.kind === 'summary' ? 'active' : ''}" data-session-jump="${steps.length - 1}" type="button">Session complete</button>
-        </aside>
-
-        <main class="session-stage" tabindex="-1">
+          </div>
           ${sessionStepBody(step)}
           ${step.kind !== 'summary' && step.kind !== 'focus' ? `
             <div class="session-nav">
