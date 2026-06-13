@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #05080f;
+      --panel: rgba(22,31,54,.58);
+      --panel-2: rgba(16,23,42,.72);
+      --line: rgba(255,255,255,.075);
+      --muted: #8a96b3;
+      --subtle: #c2cbe0;
+      --text: #f3f6fc;
+      --blue: #5b8def;
+      --blue-2: #7a9bf0;
+      --purple: #b09cf5;
+      --green: #3fc8a0;
+      --green-2: #5bd6a8;
+      --amber: #f5b14c;
+      --red: #f47174;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: Manrope, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    ::-webkit-scrollbar { width: 10px; height: 10px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border: 2px solid transparent; border-radius: 8px; background-clip: padding-box; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes growBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    @keyframes glowPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(176,156,245,.35), 0 12px 30px rgba(176,156,245,.22); }
+      50% { box-shadow: 0 0 0 10px rgba(176,156,245,0), 0 12px 38px rgba(176,156,245,.36); }
+    }
+    @keyframes dotPulse { 0%,100% { opacity: .35; transform: scale(.85); } 50% { opacity: 1; transform: scale(1); } }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      overflow: hidden;
+      background:
+        radial-gradient(1200px 600px at 18% -10%, rgba(91,141,239,.10), transparent 60%),
+        radial-gradient(900px 500px at 100% 110%, rgba(176,156,245,.08), transparent 55%),
+        #05080f;
+    }
+    .sidebar {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 14px;
+      background: linear-gradient(180deg, rgba(16,22,38,.94), rgba(9,13,24,.94));
+      border-right: 1px solid rgba(255,255,255,.06);
+      backdrop-filter: blur(12px);
+      overflow: hidden;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 6px 8px 4px; }
+    .brand-mark {
+      width: 38px; height: 38px; border-radius: 11px;
+      background: linear-gradient(140deg, var(--blue), var(--blue-2));
+      display: grid; place-items: center; position: relative; overflow: hidden;
+      box-shadow: 0 6px 18px rgba(91,141,239,.4);
+    }
+    .brand-mark::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 3px solid #fff; }
+    .brand-mark::after { content: ""; position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #fff; }
+    .brand-title { font-size: 16px; font-weight: 800; letter-spacing: 0; line-height: 1; }
+    .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #5d6b8a;
+    }
+    .divider { height: 1px; background: rgba(255,255,255,.06); margin: 16px 6px 14px; }
+    .nav { display: flex; flex-direction: column; gap: 3px; flex: 1; overflow-y: auto; }
+    .nav-btn {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 9px 12px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--subtle);
+      cursor: pointer;
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .nav-btn:hover { background: rgba(255,255,255,.045); }
+    .nav-btn.active {
+      color: #eef3ff;
+      background: linear-gradient(90deg, rgba(91,141,239,.18), rgba(91,141,239,.03));
+      border: 1px solid rgba(91,141,239,.24);
+      box-shadow: inset 0 0 16px rgba(91,141,239,.10);
+    }
+    .nav-btn.active::before {
+      content: "";
+      position: absolute;
+      left: 0; top: 50%;
+      width: 3px; height: 18px;
+      border-radius: 3px;
+      transform: translateY(-50%);
+      background: var(--blue-2);
+      box-shadow: 0 0 10px var(--blue);
+    }
+    .icon { width: 18px; height: 18px; flex: 0 0 auto; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .view-toggle {
+      margin-top: 12px;
+      padding: 5px;
+      border-radius: 13px;
+      background: rgba(5,8,15,.6);
+      border: 1px solid rgba(255,255,255,.07);
+    }
+    .seg { display: flex; gap: 4px; }
+    .seg button {
+      flex: 1;
+      min-height: 34px;
+      border: 0;
+      border-radius: 9px;
+      background: transparent;
+      color: #aab4cc;
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 800;
+    }
+    .seg button.active.student { background: linear-gradient(140deg, var(--blue), #6f8ff0); color: #fff; box-shadow: 0 5px 16px rgba(91,141,239,.4); }
+    .seg button.active.teacher { background: linear-gradient(140deg, var(--purple), #9d7ff0); color: #fff; box-shadow: 0 5px 16px rgba(157,127,240,.4); }
+    .sidebar-card {
+      margin-top: 12px;
+      padding: 13px;
+      border: 1px solid rgba(91,141,239,.18);
+      border-radius: 15px;
+      background: linear-gradient(150deg, rgba(91,141,239,.10), rgba(255,255,255,.025));
+    }
+
+    .shell { min-width: 0; height: 100vh; display: flex; flex-direction: column; }
+    .topbar {
+      height: 70px;
+      flex: 0 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 28px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      background: rgba(5,8,15,.62);
+      backdrop-filter: blur(12px);
+    }
+    .search {
+      min-width: 280px;
+      width: min(480px, 48vw);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px;
+      background: rgba(255,255,255,.035);
+      color: #7d89a5;
+      font-size: 13px;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 30px;
+      padding: 0 11px;
+      border-radius: 10px;
+      border: 1px solid rgba(63,200,160,.22);
+      background: rgba(63,200,160,.08);
+      color: #9fe0c4;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .status-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: dotPulse 2s infinite; }
+    .profile { position: relative; }
+    .profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 4px 10px 4px 4px;
+      border-radius: 11px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: rgba(255,255,255,.03);
+      cursor: pointer;
+    }
+    .avatar { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; background: linear-gradient(140deg, var(--blue), var(--purple)); color: #fff; font-weight: 800; font-size: 12px; }
+    .menu {
+      position: absolute;
+      right: 0;
+      top: 46px;
+      width: 246px;
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.09);
+      background: rgba(12,18,32,.96);
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      z-index: 80;
+      display: none;
+    }
+    .menu.open { display: block; animation: fadeUp .2s ease both; }
+    .menu button { width: 100%; padding: 10px 12px; border: 0; border-radius: 9px; background: transparent; color: #dbe2f0; text-align: left; cursor: pointer; font-weight: 700; }
+    .menu button:hover { background: rgba(255,255,255,.06); }
+    .menu .danger { color: #f0a5a7; }
+
+    main { flex: 1; overflow: auto; padding: 28px 30px 64px; }
+    .page { max-width: 1240px; margin: 0 auto; animation: fadeUp .38s cubic-bezier(.2,.8,.2,1) both; }
+    .page.narrow { max-width: 760px; }
+    .page.medium { max-width: 1100px; }
+    .page-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+    h1 { margin: 0; font-size: 32px; line-height: 1.05; letter-spacing: 0; color: #f5f8fd; }
+    h2 { margin: 0; font-size: 15px; letter-spacing: 0; }
+    p { margin: 0; }
+    .lead { margin-top: 7px; color: var(--muted); font-size: 15px; }
+    .card {
+      border-radius: 20px;
+      padding: 22px;
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+    }
+    .card.blue { background: linear-gradient(160deg, rgba(91,141,239,.14), rgba(22,31,54,.62) 58%); border-color: rgba(91,141,239,.22); }
+    .card.purple { background: linear-gradient(160deg, rgba(176,156,245,.13), rgba(22,31,54,.58) 60%); border-color: rgba(176,156,245,.22); }
+    .card.red { background: linear-gradient(160deg, rgba(244,113,116,.11), rgba(22,31,54,.58) 60%); border-color: rgba(244,113,116,.20); }
+    .grid { display: grid; gap: 18px; }
+    .hero-grid { grid-template-columns: 392px minmax(0, 1fr); margin-bottom: 18px; }
+    .lower-grid { grid-template-columns: 1.32fr 1fr 1fr; }
+    .teacher-metrics { grid-template-columns: 1.3fr repeat(3, 1fr); margin-bottom: 18px; }
+    .two-col { grid-template-columns: minmax(0, 1fr) minmax(300px, .9fr); align-items: start; }
+    .assign-grid { grid-template-columns: minmax(330px, .9fr) minmax(0, 1.12fr); align-items: start; }
+    .analytics-grid { grid-template-columns: repeat(4, 1fr); margin-bottom: 18px; }
+
+    .ring { position: relative; width: 160px; height: 160px; flex: 0 0 auto; }
+    .ring.small { width: 104px; height: 104px; }
+    .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring-core { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+    .ring-num { font-size: 42px; font-weight: 800; line-height: .9; }
+    .ring.small .ring-num { font-size: 28px; }
+    .meta { font-family: "JetBrains Mono", monospace; color: #6b7894; font-size: 11px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 11px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .chip.red { color: #f4868a; background: rgba(244,113,116,.14); border-color: rgba(244,113,116,.25); }
+    .chip.amber { color: #f5c477; background: rgba(245,177,76,.14); border-color: rgba(245,177,76,.25); }
+    .chip.blue { color: #9fb4ee; background: rgba(91,141,239,.14); border-color: rgba(91,141,239,.25); }
+    .chip.green { color: #7fe9c0; background: rgba(63,200,160,.12); border-color: rgba(63,200,160,.22); }
+    .task, .assignment, .risk-row, .recommendation {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.026);
+      border: 1px solid rgba(255,255,255,.07);
+      position: relative;
+      overflow: hidden;
+    }
+    .task:hover, .assignment:hover, .risk-row:hover, .recommendation:hover { border-color: rgba(91,141,239,.30); }
+    .task.red { background: rgba(244,113,116,.06); border-color: rgba(244,113,116,.18); }
+    .task::before, .recommendation.accent::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent, var(--blue)); }
+    .num {
+      width: 30px; height: 30px; border-radius: 9px;
+      display: grid; place-items: center;
+      background: color-mix(in srgb, var(--accent, var(--blue)) 18%, transparent);
+      color: var(--accent, var(--blue));
+      font-family: "JetBrains Mono", monospace;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+    .primary, .secondary {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 14px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .primary { background: var(--blue); color: #fff; }
+    .primary.red { background: var(--red); }
+    .primary.purple { background: linear-gradient(140deg, var(--purple), #9d7ff0); }
+    .secondary { border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04); color: #dbe2f0; }
+    .primary:hover, .secondary:hover { filter: brightness(1.08); }
+    .progress { height: 7px; border-radius: 4px; background: rgba(255,255,255,.065); overflow: hidden; }
+    .progress > span { display: block; height: 100%; width: var(--w); border-radius: inherit; transform-origin: left; animation: growBar .8s ease both; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 68%, #fff)); }
+    .bar-item { display: grid; gap: 7px; }
+    .bar-head { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 700; color: #dbe2f0; }
+    .timeline { position: relative; padding-left: 8px; }
+    .timeline::before { content: ""; position: absolute; left: 13px; top: 6px; bottom: 6px; width: 2px; border-radius: 2px; background: linear-gradient(180deg, var(--red), var(--amber), var(--blue), rgba(91,141,239,.2)); }
+    .time-row { position: relative; display: flex; gap: 14px; padding-bottom: 16px; }
+    .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 9px var(--accent); margin-top: 3px; border: 2px solid #0b0f1a; z-index: 1; flex: 0 0 auto; }
+    .calendar-week { display: grid; grid-template-columns: repeat(5, 1fr); gap: 11px; }
+    .day-title { text-align: center; padding-bottom: 10px; font-family: "JetBrains Mono", monospace; }
+    .event { padding: 10px; border-radius: 11px; background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent); border-left: 3px solid var(--accent); margin-bottom: 8px; }
+    .event .time { font-family: "JetBrains Mono", monospace; font-size: 9px; color: color-mix(in srgb, var(--accent) 70%, #fff); }
+    .event .name { margin-top: 3px; font-size: 12px; font-weight: 700; color: #e8ecf5; }
+    .assignment {
+      width: 100%;
+      border-radius: 15px;
+      text-align: left;
+      background: rgba(22,31,54,.55);
+      cursor: pointer;
+      display: block;
+      color: inherit;
+    }
+    .assignment.selected { border-color: rgba(91,141,239,.58); box-shadow: inset 0 0 20px rgba(91,141,239,.12); }
+    .assignment.selected::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--blue); box-shadow: 0 0 12px var(--blue); }
+    .sticky { position: sticky; top: 0; }
+    .panel-header { margin: -22px -22px 20px; padding: 20px 22px; border-bottom: 1px solid rgba(255,255,255,.07); background: linear-gradient(140deg, rgba(91,141,239,.12), transparent); }
+    .list { display: grid; gap: 10px; }
+    .split-list { display: grid; gap: 13px; }
+    .check-row { display: flex; gap: 9px; align-items: flex-start; color: var(--subtle); font-size: 13px; line-height: 1.45; }
+    .check { width: 15px; height: 15px; color: var(--blue); flex: 0 0 auto; margin-top: 1px; }
+    .tabbar {
+      display: flex;
+      gap: 6px;
+      width: fit-content;
+      margin-bottom: 20px;
+      padding: 5px;
+      border-radius: 13px;
+      background: rgba(5,8,15,.5);
+      border: 1px solid rgba(255,255,255,.07);
+      overflow-x: auto;
+      max-width: 100%;
+    }
+    .tabbar button {
+      position: relative;
+      border: 0;
+      border-radius: 9px;
+      padding: 9px 16px;
+      background: transparent;
+      color: #aab4cc;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .tabbar button.active { background: linear-gradient(140deg, var(--blue), #6f8ff0); color: #fff; }
+    .flashcards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; max-width: 900px; }
+    .flashcard {
+      min-height: 200px;
+      border-radius: 18px;
+      border: 1px solid rgba(91,141,239,.22);
+      background: linear-gradient(180deg, rgba(91,141,239,.08), rgba(22,31,54,.6));
+      cursor: pointer;
+      padding: 22px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+    }
+    .flashcard:hover { border-color: rgba(91,141,239,.50); }
+    .note-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .month { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+    .month.head { margin-bottom: 10px; }
+    .cell { min-height: 96px; border-radius: 11px; padding: 8px; background: rgba(255,255,255,.02); border: 1px solid rgba(255,255,255,.05); overflow: hidden; }
+    .cell.weekend { background: rgba(255,255,255,.015); }
+    .mini-event { margin-top: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 9px; font-weight: 700; color: #fff; border-radius: 5px; padding: 2px 5px; background: var(--accent); }
+    .bars { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; height: 150px; }
+    .bar { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px; }
+    .bar i { display: block; width: min(34px, 100%); height: var(--h); border-radius: 7px 7px 3px 3px; background: linear-gradient(180deg, var(--blue), rgba(91,141,239,.4)); }
+    .coach-fab {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      z-index: 55;
+      height: 56px;
+      border: 1px solid rgba(176,156,245,.4);
+      border-radius: 28px;
+      padding: 0 20px 0 16px;
+      background: linear-gradient(140deg, var(--purple), #9d7ff0);
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 800;
+      animation: glowPulse 3.5s infinite;
+    }
+    .coach-panel {
+      position: fixed;
+      right: 24px;
+      bottom: 94px;
+      width: 390px;
+      max-width: calc(100vw - 32px);
+      max-height: min(660px, calc(100vh - 118px));
+      z-index: 60;
+      display: none;
+      overflow: hidden;
+      border: 1px solid rgba(176,156,245,.25);
+      border-radius: 20px;
+      background: rgba(12,18,32,.97);
+      box-shadow: 0 24px 80px rgba(0,0,0,.45);
+    }
+    .coach-panel.open { display: block; animation: fadeUp .22s ease both; }
+    .coach-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 18px; border-bottom: 1px solid rgba(255,255,255,.07); background: linear-gradient(140deg, rgba(176,156,245,.14), transparent); }
+    .coach-body { padding: 18px; overflow: auto; max-height: calc(min(660px, 100vh - 118px) - 66px); }
+    .bubble { max-width: 84%; padding: 13px 15px; border-radius: 14px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); color: #dbe2f0; font-size: 13.5px; line-height: 1.55; }
+    .bubble.user { margin-left: auto; border-radius: 14px 4px 14px 14px; background: rgba(91,141,239,.16); border-color: rgba(91,141,239,.22); }
+    .question { width: 100%; text-align: left; padding: 10px 13px; border-radius: 11px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03); color: #dbe2f0; cursor: pointer; font-size: 13px; font-weight: 600; margin-top: 9px; }
+    .question:hover { background: rgba(176,156,245,.10); border-color: rgba(176,156,245,.3); }
+    .toggle {
+      width: 46px;
+      height: 26px;
+      border: 0;
+      border-radius: 14px;
+      background: rgba(255,255,255,.10);
+      position: relative;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+    .toggle::after { content: ""; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #8a96b3; transition: .18s ease; }
+    .toggle.on { background: linear-gradient(140deg, var(--blue), #6f8ff0); }
+    .toggle.green.on { background: linear-gradient(140deg, var(--green), var(--green-2)); }
+    .toggle.on::after { left: 23px; background: #fff; }
+
+    @media (max-width: 1080px) {
+      .app { grid-template-columns: 86px minmax(0, 1fr); }
+      .sidebar { padding: 14px 10px; }
+      .brand > div:last-child, .nav-btn span, .view-toggle .eyebrow, .sidebar-card, .seg button span { display: none; }
+      .brand { justify-content: center; padding-inline: 0; }
+      .nav-btn { justify-content: center; padding: 12px 0; }
+      .view-toggle { padding: 5px; }
+      .seg { flex-direction: column; }
+      .hero-grid, .lower-grid, .teacher-metrics, .two-col, .assign-grid, .analytics-grid { grid-template-columns: 1fr; }
+      .sticky { position: static; }
+    }
+    @media (max-width: 720px) {
+      .app { display: block; overflow: visible; }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        z-index: 90;
+        height: auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        overflow-x: auto;
+        border-right: 0;
+        border-bottom: 1px solid rgba(255,255,255,.06);
+      }
+      .brand, .divider, .view-toggle, .sidebar-card { display: none; }
+      .nav { flex-direction: row; overflow: visible; }
+      .nav-btn { min-width: 46px; }
+      .shell { height: auto; min-height: 100vh; }
+      .topbar { height: auto; padding: 14px; align-items: stretch; flex-direction: column; }
+      .search { min-width: 0; width: 100%; }
+      main { padding: 20px 14px 86px; }
+      .page-title { display: block; }
+      h1 { font-size: 27px; }
+      .calendar-week, .month { min-width: 720px; }
+      .month-wrap { overflow-x: auto; }
+      .flashcards, .note-grid { grid-template-columns: 1fr; }
+      .coach-fab { right: 16px; bottom: 16px; }
+      .coach-panel { right: 16px; bottom: 82px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="The Hub navigation">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <div class="brand-title">The Hub</div>
+          <div class="eyebrow" style="margin-top:3px">Academic Command</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <nav class="nav" id="nav"></nav>
+      <div class="view-toggle">
+        <div class="eyebrow" style="padding:3px 6px 7px">Viewing as</div>
+        <div class="seg">
+          <button id="studentBtn" class="student" type="button" aria-label="Student view"><span>Student</span></button>
+          <button id="teacherBtn" class="teacher" type="button" aria-label="Teacher view"><span>Teacher</span></button>
+        </div>
+      </div>
+      <div class="sidebar-card">
+        <div class="eyebrow">Next focus</div>
+        <div style="font-size:13px;font-weight:800;margin-top:8px">Equilibrium review</div>
+        <div class="meta" style="margin-top:4px">45 min  -  highest impact</div>
+      </div>
+    </aside>
+
+    <div class="shell">
+      <header class="topbar">
+        <div class="search">
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          Search classes, assignments, notes...
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;justify-content:space-between">
+          <span class="status-pill">Synced with Google Classroom</span>
+          <div class="profile">
+            <button class="profile-btn" id="profileBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+              <div class="avatar" id="profileInitials">AR</div>
+              <div style="text-align:left">
+                <div id="profileName" style="font-size:13px;font-weight:800;color:#f3f6fc">Alex Rivera</div>
+                <div id="profileRole" class="meta" style="font-size:10px">Student</div>
+              </div>
+              <svg class="icon" style="width:14px;height:14px;color:#7c879f" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="menu" id="profileMenu">
+              <div id="signedInBlock">
+                <div style="padding:8px 10px 12px;border-bottom:1px solid rgba(255,255,255,.07);margin-bottom:6px">
+                  <div style="font-weight:800">alex.rivera@school.edu</div>
+                  <div class="meta" style="margin-top:3px">Personal learning workspace</div>
+                </div>
+                <button type="button" data-page="settings">Account settings</button>
+                <button type="button" class="danger" id="signOutBtn">Sign out</button>
+              </div>
+              <div id="signedOutBlock" hidden>
+                <div class="meta" style="padding:10px;line-height:1.45">Connect your Google account to sync classes, notes, and calendar.</div>
+                <button type="button" id="signInBtn" style="background:#fff;color:#111827;text-align:center">Sign in with Google</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main id="main"></main>
+    </div>
+  </div>
+
+  <section class="coach-panel" id="coachPanel" aria-label="Hub Coach">
+    <div class="coach-head">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar" style="background:linear-gradient(140deg,var(--purple),#9d7ff0)">AI</div>
+        <div>
+          <div style="font-size:14px;font-weight:800">Hub Coach</div>
+          <div class="meta" style="font-size:10px">Academic integrity mode</div>
+        </div>
+      </div>
+      <button id="closeCoach" type="button" class="secondary" style="padding:6px 9px" aria-label="Close coach">x</button>
+    </div>
+    <div class="coach-body" id="coachBody"></div>
+  </section>
+  <button class="coach-fab" id="coachFab" type="button">
+    <svg class="icon" viewBox="0 0 24 24"><path d="M12 2 4.5 13H11l-1 9 8.5-11H12z"/></svg>
+    Ask Hub Coach
+  </button>
+
+  <script>
+    const icons = {
+      dashboard: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+      planner: '<rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3M7 14h4M7 17h7"/>',
+      assignments: '<path d="M9 3h6a2 2 0 0 1 2 2h1a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1M9 3a2 2 0 0 0-2 2M9 3a2 2 0 0 1 2 2h2M9 13l2 2 4-4"/>',
+      study: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H12v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H12v16h5.5a2.5 2.5 0 0 1 2.5 2.5z"/>',
+      insights: '<circle cx="6" cy="7" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="17" r="2.5"/><path d="M8.2 8.4l2.4 6.4M16.2 8l-3 7.2M8 7.2h7.5"/>',
+      notes: '<path d="M5 3h9l5 5v13H5zM14 3v5h5M8 13h8M8 17h5"/>',
+      calendar: '<rect x="3" y="4" width="18" height="17" rx="2.5"/><path d="M3 9h18M8 3v3M16 3v3"/>',
+      analytics: '<path d="M4 20V4M4 20h16M8 16v-4M12 16V8M16 16v-7"/>',
+      settings: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/>'
+    };
+    const navItems = [
+      ['dashboard', 'Dashboard'],
+      ['planner', 'Academic Planner'],
+      ['assignments', 'Assignments'],
+      ['study', 'Study Center'],
+      ['insights', 'Learning Insights'],
+      ['notes', 'Notes'],
+      ['calendar', 'Calendar'],
+      ['analytics', 'Analytics'],
+      ['settings', 'Settings']
+    ];
+    const assignments = {
+      calc: {
+        title: 'Unit 4 Problem Set: Integration Applications', course: 'AP Calculus BC', type: 'Problem Set', hours: '3.5 hrs', due: 'Due tomorrow', completion: 35, risk: 'HIGH', accent: '#5b8def',
+        summary: 'A 14-problem set applying definite integrals to area, volume by disk and washer, and average value. Mastery of the washer method is the key gap; it appears in 5 of 14 problems.',
+        requirements: ['Show all setup steps, not just answers', 'Sketch each region before integrating', 'Include units on applied problems', 'Submit as a single PDF via Classroom'],
+        outline: ['Warm-up: 3 area-between-curves problems', 'Core: 6 volume problems, disk to washer', 'Stretch: 3 average-value applications', 'Review flagged washer setups'],
+        milestones: [['Problems 1-5, area', true], ['Problems 6-10, volume', false], ['Problems 11-14, average value', false], ['Self-check against solutions', false]],
+        materials: ['Washer Method study guide', 'Lecture 4.3 notes', 'Khan: Volume of revolution'],
+        risks: ['Washer setup mastery is 58%, your weakest sub-skill here', 'Due in under 24h with 65% remaining'],
+        actions: ['Review washer method for 15 min before Problem 6', 'Block 60 min tonight in your plan', 'Re-check readiness after problems 6-10']
+      },
+      lab: {
+        title: 'Titration Lab Report', course: 'AP Chemistry', type: 'Lab Report', hours: '4.5 hrs', due: 'Due Thursday', completion: 20, risk: 'MED', accent: '#3fc8a0',
+        summary: 'Formal write-up of the acid-base titration lab. Requires a clear distinction between endpoint and equivalence point, plus error analysis on your computed molarity.',
+        requirements: ['Abstract, methods, data, analysis, conclusion', 'Titration curve with labeled equivalence point', 'Propagate uncertainty through molarity calculation', 'Cite the indicator choice rationale'],
+        outline: ['Draft methods from your lab notebook', 'Build titration curve from raw data', 'Compute molarity and error', 'Write analysis and conclusion'],
+        milestones: [['Data tables compiled', true], ['Titration curve plotted', false], ['Error analysis', false], ['Full draft', false]],
+        materials: ['Lab notebook, period 3', 'Titration study guide', 'Endpoint vs equivalence flashcards'],
+        risks: ['Endpoint/equivalence distinction is a common loss point', 'Significant figures rules affect 3 graded calculations'],
+        actions: ['Review endpoint vs equivalence point first', 'Plot the curve before writing analysis', 'Use the sig-fig checklist in Materials']
+      },
+      essay: {
+        title: 'Congress of Vienna Essay', course: 'AP World History', type: 'Essay', hours: '6 hrs', due: 'Due Friday', completion: 45, risk: 'MED', accent: '#f5b14c',
+        summary: 'An analytical essay on how the Congress of Vienna reshaped the European balance of power. The thesis must take a defensible position on conservatism versus nationalism.',
+        requirements: ['Defensible, specific thesis', '3 body paragraphs with evidence', 'Address Metternich\'s conservatism', 'Conclusion that extends the argument'],
+        outline: ['Thesis: balance-of-power as conservative restoration', 'Para 1: territorial settlements', 'Para 2: Metternich and conservative order', 'Para 3: seeds of nationalism'],
+        milestones: [['Thesis approved', true], ['Outline complete', true], ['First draft', false], ['Revision pass', false]],
+        materials: ['Concert of Europe class notes', 'Final Act primary excerpts', 'Thesis development guide'],
+        risks: ['Congress of Vienna mastery is 64%, evidence may be thin', 'Tends to drift into narration over analysis'],
+        actions: ['Lock the thesis before drafting', 'Pull 2 specific dates or treaties per paragraph', 'Draft Friday-due work earlier to avoid overload']
+      },
+      pres: {
+        title: 'Hamlet Themes Presentation', course: 'AP English Literature', type: 'Presentation', hours: '5 hrs', due: 'Due Monday', completion: 10, risk: 'LOW', accent: '#b09cf5',
+        summary: 'A 6-8 slide presentation tracing one major theme through Hamlet with close-reading evidence. Madness, mortality, or revenge are strong choices given your notes.',
+        requirements: ['One focused theme, clearly stated', '3 close-read passages with citations', 'Visual slides, minimal text', '5-7 minute spoken delivery'],
+        outline: ['Pick theme: mortality', 'Select 3 passages', 'Build slides around each passage', 'Rehearse timing'],
+        milestones: [['Theme chosen', true], ['Passages selected', false], ['Slides built', false], ['Rehearsed', false]],
+        materials: ['Annotated Hamlet, Acts 3-5', 'Close-reading rubric', 'Slide template'],
+        risks: ['Earliest you can start without crowding the week', 'Delivery timing often runs long'],
+        actions: ['Choose passages this weekend', 'Keep slides to one idea each', 'Rehearse once out loud before Monday']
+      },
+      exam: {
+        title: 'AP World History Midterm Exam', course: 'AP World History', type: 'Exam Prep', hours: '8 hrs', due: 'Due Jun 20', completion: 15, risk: 'LOW', accent: '#7a9bf0',
+        summary: 'Cumulative midterm spanning Units 1-4. Historical causation and the Congress of Vienna are your softest areas; spacing prep across three sessions will beat one long cram.',
+        requirements: ['Units 1-4 content', '30 MCQ + 1 DBQ + 1 LEQ', 'Timed practice recommended', 'Bring reasoning, not just dates'],
+        outline: ['Session 1: Units 1-2 review + 10 MCQ', 'Session 2: Units 3-4 + causation drills', 'Session 3: timed DBQ + LEQ practice'],
+        milestones: [['Review plan set', true], ['Session 1 done', false], ['Session 2 done', false], ['Timed practice', false]],
+        materials: ['Unit 1-4 summary notes', 'Causation practice bank', 'DBQ rubric'],
+        risks: ['Historical causation mastery is developing', 'Large scope rewards spaced practice'],
+        actions: ['Break prep into three shorter sessions', 'Start with causation, your weakest area', 'Do one timed DBQ before exam day']
+      }
+    };
+    const state = {
+      view: 'student',
+      page: 'dashboard',
+      selectedAssignment: 'calc',
+      studyTab: 'guide',
+      notesTab: 'combined',
+      coachOpen: false,
+      profileOpen: false,
+      signedIn: true,
+      flips: {},
+      settings: { google: true, demo: true, integrity: true, email: true, push: false, reminders: true }
+    };
+
+    const main = document.getElementById('main');
+    const nav = document.getElementById('nav');
+
+    function icon(name) {
+      return `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${icons[name]}</svg>`;
+    }
+    function setState(next) {
+      Object.assign(state, typeof next === 'function' ? next(state) : next);
+      render();
+    }
+    function go(page) { setState({ page, profileOpen: false }); }
+    function setView(view) { setState({ view, page: 'dashboard', coachOpen: false, profileOpen: false }); }
+    function chip(label, tone) { return `<span class="chip ${tone}">${label}</span>`; }
+    function progress(label, value, color) {
+      return `<div class="bar-item" style="--accent:${color}"><div class="bar-head"><span>${label}</span><span class="meta" style="color:${color}">${value}%</span></div><div class="progress"><span style="--w:${value}%"></span></div></div>`;
+    }
+    function ring(value, id, small = false, color1 = '#5b8def', color2 = '#9d7ff0') {
+      const offset = 439.8 - 439.8 * value / 100;
+      return `<div class="ring ${small ? 'small' : ''}">
+        <svg viewBox="0 0 180 180">
+          <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${color1}"/><stop offset="1" stop-color="${color2}"/></linearGradient></defs>
+          <circle cx="90" cy="90" r="70" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="${small ? 15 : 13}"></circle>
+          <circle cx="90" cy="90" r="70" fill="none" stroke="url(#${id})" stroke-width="${small ? 15 : 13}" stroke-linecap="round" stroke-dasharray="439.8" stroke-dashoffset="${offset}" style="filter:drop-shadow(0 0 7px ${color1}88)"></circle>
+        </svg>
+        <div class="ring-core"><div><div class="ring-num">${value}</div><div class="meta">/ 100</div></div></div>
+      </div>`;
+    }
+    function pageTitle(title, subtitle, eyebrow = '') {
+      return `<div class="page-title"><div>${eyebrow ? `<div class="eyebrow" style="color:var(--blue);margin-bottom:8px">${eyebrow}</div>` : ''}<h1>${title}</h1><p class="lead">${subtitle}</p></div></div>`;
+    }
+    function actionCard(text, button = 'Apply') {
+      return `<div style="padding:13px;border-radius:13px;background:rgba(5,8,15,.4);border:1px solid rgba(255,255,255,.07)"><div style="font-size:13px;line-height:1.5;color:#dbe2f0">${text}</div><button class="secondary" style="margin-top:9px;padding:5px 11px;font-size:11px;color:#c4b5f5;background:rgba(176,156,245,.12);border-color:rgba(176,156,245,.25)">${button}</button></div>`;
+    }
+    function renderNav() {
+      nav.innerHTML = navItems.map(([id, label]) => `<button class="nav-btn ${state.page === id ? 'active' : ''}" type="button" data-page="${id}" title="${label}">${icon(id)}<span>${label}</span></button>`).join('');
+      document.getElementById('studentBtn').classList.toggle('active', state.view === 'student');
+      document.getElementById('teacherBtn').classList.toggle('active', state.view === 'teacher');
+      document.getElementById('profileName').textContent = state.view === 'teacher' ? 'Ms. Tan' : 'Alex Rivera';
+      document.getElementById('profileRole').textContent = state.view === 'teacher' ? 'Teacher' : 'Student';
+      document.getElementById('profileInitials').textContent = state.view === 'teacher' ? 'MT' : 'AR';
+    }
+    function renderProfile() {
+      document.getElementById('profileMenu').classList.toggle('open', state.profileOpen);
+      document.getElementById('profileBtn').setAttribute('aria-expanded', state.profileOpen ? 'true' : 'false');
+      document.getElementById('signedInBlock').hidden = !state.signedIn;
+      document.getElementById('signedOutBlock').hidden = state.signedIn;
+    }
+
+    function studentDashboard() {
+      return `<section class="page">
+        <div class="page-title">
+          <div><div class="eyebrow" style="color:var(--blue);margin-bottom:8px">Thursday  -  June 12</div><h1>Good afternoon, Alex</h1><p class="lead">Here's what needs your attention today.</p></div>
+          <button class="secondary" data-coach-open style="color:#d6cbf8;border-color:rgba(176,156,245,.3);background:linear-gradient(140deg,rgba(176,156,245,.16),rgba(176,156,245,.05))">Ask Hub Coach</button>
+        </div>
+        <div class="grid hero-grid">
+          <div class="card blue">
+            <div class="eyebrow" style="color:#9fb4ee">Academic Readiness</div>
+            <div style="display:flex;align-items:center;gap:22px;margin-top:18px">
+              ${ring(74, 'rgStudent')}
+              <div><div>${chip('<span style="width:6px;height:6px;border-radius:50%;background:var(--amber);box-shadow:0 0 7px var(--amber)"></span>Needs Review', 'amber')}</div><p style="font-size:13.5px;line-height:1.5;color:var(--subtle);margin-top:12px">Chemistry test in <strong style="color:#fff">3 days</strong> and Equilibrium mastery is low.</p></div>
+            </div>
+            <div class="task" style="margin-top:20px;--accent:var(--blue);background:rgba(5,8,15,.45)"><div class="num">${icon('study')}</div><div style="flex:1"><div class="eyebrow">Fastest improvement</div><div style="font-size:13.5px;font-weight:800;margin-top:2px">45 min Equilibrium review</div></div><button class="primary" data-page="study">Go</button></div>
+          </div>
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;gap:16px;margin-bottom:14px"><h2>Today's Priorities</h2><span class="meta">3 tasks  -  2h 25m</span></div>
+            <div class="list">
+              ${task('Review Chemistry Equilibrium', 'High Priority  -  45 min  -  Test in 3 days', 'Start', 'study', '#f47174', true, 1)}
+              ${task('Finish Congress of Vienna essay outline', 'Medium Priority  -  40 min  -  Due Friday', 'Plan', 'planner', '#f5b14c', false, 2)}
+              ${task('Complete Integration Applications problem set', 'Medium Priority  -  60 min  -  Due tomorrow', 'Plan', 'planner', '#f5b14c', false, 3)}
+            </div>
+          </div>
+        </div>
+        <div class="grid lower-grid">
+          <div class="card"><h2 style="margin-bottom:16px">Upcoming Deadlines</h2><div class="timeline">
+            ${deadline('Integration Applications', 'AP Calculus BC  -  Due tomorrow  -  1.5h left', 'HIGH', '#f47174')}
+            ${deadline('Titration Lab Report', 'AP Chemistry  -  Due Thu  -  3h left', 'MED', '#f5b14c')}
+            ${deadline('Congress of Vienna Essay', 'AP World History  -  Due Fri  -  5h left', 'MED', '#f5b14c')}
+            ${deadline('Hamlet Themes Presentation', 'AP English Lit  -  Due Mon  -  4h left', 'LOW', '#5b8def')}
+            ${deadline('AP World History Midterm', 'AP World History  -  Due Jun 20  -  8h left', 'LOW', '#5b8def', true)}
+          </div></div>
+          <div class="card"><h2 style="margin-bottom:16px">Learning Gaps</h2><div class="split-list">
+            ${progress('Equilibrium', 42, '#f47174')}
+            ${progress('Applications of Integration', 58, '#f5b14c')}
+            ${progress('Congress of Vienna', 64, '#f5b14c')}
+            ${progress('Hamlet Themes', 71, '#3fc8a0')}
+          </div><button class="secondary" data-page="insights" style="width:100%;margin-top:18px">View mastery map</button></div>
+          <div class="card purple"><div style="display:flex;align-items:center;gap:8px;margin-bottom:16px"><h2>Tonight's Plan</h2><span class="chip blue" style="font-size:9px;margin-left:auto">AI</span></div>
+            <div class="list">
+              ${smallPlan('5:15-6:00', 'Equilibrium review')}
+              ${smallPlan('6:20-7:00', 'Essay outline pass')}
+              ${smallPlan('7:45-8:00', "Review tomorrow's calendar")}
+            </div>
+            <button class="primary purple" data-page="planner" style="width:100%;margin-top:18px">Start mission plan</button>
+          </div>
+        </div>
+      </section>`;
+    }
+    function task(title, meta, button, page, color, hot, num) {
+      return `<div class="task ${hot ? 'red' : ''}" style="--accent:${color}"><div class="num">${num}</div><div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:800">${title}</div><div class="meta" style="margin-top:5px;color:${color}">${meta}</div></div><button class="${hot ? 'primary red' : 'secondary'}" data-page="${page}">${button}</button></div>`;
+    }
+    function deadline(title, meta, risk, color, last = false) {
+      const tone = color === '#f47174' ? 'red' : color === '#f5b14c' ? 'amber' : 'blue';
+      return `<div class="time-row" style="${last ? 'padding-bottom:0' : ''}"><div class="dot" style="--accent:${color}"></div><div style="flex:1"><div style="font-size:13.5px;font-weight:800">${title}</div><div class="meta" style="margin-top:3px">${meta}</div></div>${chip(risk, tone)}</div>`;
+    }
+    function smallPlan(time, text) {
+      return `<div style="display:flex;gap:11px;align-items:flex-start"><span class="meta" style="color:#b8a9f0;width:74px;padding-top:1px">${time}</span><div style="font-size:13px;font-weight:700">${text}</div></div>`;
+    }
+
+    function teacherDashboard() {
+      return `<section class="page">
+        ${pageTitle('Class Intelligence Dashboard', 'See what your students need before problems appear.', 'AP Chemistry  -  Period 3  -  28 students')}
+        <div class="grid teacher-metrics">
+          <div class="card purple" style="display:flex;align-items:center;gap:18px">${ring(68, 'rgTeacher', true, '#b09cf5', '#7a9bf0')}<div><div class="eyebrow" style="color:#c4b5f5">Class Readiness</div><p style="font-size:13px;color:var(--subtle);line-height:1.45;margin-top:8px">Trending <strong style="color:#7fe9c0">+4</strong> this week. Equilibrium is dragging the average.</p></div></div>
+          ${metric('At-Risk Students', '5', '2 high  -  3 moderate', 'red')}
+          ${metric('Hardest Concept', 'Equilibrium', '48% avg mastery')}
+          ${metric('Assignment Completion', '76%', 'on-track submissions')}
+        </div>
+        <div class="grid two-col" style="margin-bottom:18px">
+          <div class="card"><h2 style="margin-bottom:16px">Concept Understanding</h2><div class="split-list">${progress('Stoichiometry', 82, '#3fc8a0')}${progress('Equilibrium', 48, '#f47174')}${progress('Applications of Integration', 61, '#f5b14c')}${progress('Historical Causation', 69, '#f5b14c')}${progress('Hamlet Themes', 74, '#3fc8a0')}</div></div>
+          <div class="card"><h2 style="margin-bottom:16px">Student Risk Monitor</h2><div class="list">
+            ${riskRow('MC', 'Maya Chen', 'Chemistry Equilibrium', 'HIGH RISK', '#f47174')}
+            ${riskRow('DB', 'Daniel Brooks', 'Missing essay outline', 'MODERATE', '#f5b14c')}
+            ${riskRow('PS', 'Priya Shah', 'AP World midterm readiness', 'MODERATE', '#f5b14c')}
+            ${riskRow('EL', 'Ethan Lee', 'Calculus problem set incomplete', 'HIGH RISK', '#f47174')}
+            ${riskRow('SG', 'Sofia Garcia', 'Low practice completion', 'MODERATE', '#f5b14c')}
+          </div></div>
+        </div>
+        <div class="grid two-col">
+          <div class="card blue"><h2>Assessment Insights</h2><div class="meta" style="margin-top:4px">Upcoming Chemistry Test  -  Friday</div><div style="display:flex;align-items:center;gap:16px;margin:18px 0"><div style="font-size:44px;font-weight:800">61<span style="font-size:20px;color:#6b7894">%</span></div><div style="font-size:12.5px;color:var(--subtle)">class readiness for this assessment</div></div><div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">${chip('Equilibrium','red')}${chip('Titration calculations','amber')}${chip('Significant figures','amber')}</div><div class="task" style="--accent:var(--blue);background:rgba(5,8,15,.4)"><div class="num">${icon('study')}</div><div style="font-size:13px;line-height:1.5"><strong style="color:#9fb4ee">Recommended:</strong> Spend 20 minutes reviewing equilibrium calculations before Friday.</div></div></div>
+          <div class="card"><h2 style="margin-bottom:16px">Intervention Recommendations</h2><div class="list">${recommendation('Review Equilibrium tomorrow', 'Highest impact  -  whole class', '#f47174')}${recommendation('Check in with 5 at-risk students', 'Maya, Daniel, Priya, Ethan, Sofia', '#f5b14c')}${recommendation('Assign targeted practice set', '10 equilibrium problems  -  auto-graded', '#5b8def')}${recommendation('Revisit essay thesis development', 'AP World History  -  mini-lesson', '#b09cf5')}</div></div>
+        </div>
+      </section>`;
+    }
+    function metric(k, v, m, tone = '') {
+      return `<div class="card ${tone}"><div class="eyebrow" style="${tone === 'red' ? 'color:#f0a5a7' : ''}">${k}</div><div style="margin-top:18px"><div style="font-size:${v.length > 8 ? 22 : 40}px;font-weight:800;line-height:1;letter-spacing:0">${v}</div><div class="meta" style="margin-top:7px">${m}</div></div></div>`;
+    }
+    function riskRow(initials, name, detail, label, color) {
+      return `<div class="risk-row" style="${color === '#f47174' ? 'background:rgba(244,113,116,.06);border-color:rgba(244,113,116,.18)' : ''}"><div class="avatar" style="background:linear-gradient(140deg,${color},${color === '#f47174' ? '#f5907a' : '#7a9bf0'})">${initials}</div><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:800">${name}</div><div class="meta" style="margin-top:2px">${detail}</div></div><span class="chip ${color === '#f47174' ? 'red' : 'amber'}">${label}</span></div>`;
+    }
+    function recommendation(title, meta, color) {
+      return `<div class="recommendation accent" style="--accent:${color}"><div class="num">${icon('assignments')}</div><div style="flex:1"><div style="font-size:13.5px;font-weight:800">${title}</div><div class="meta" style="margin-top:2px">${meta}</div></div></div>`;
+    }
+
+    function plannerPage() {
+      const days = [
+        ['MON', '9', [['4:30 PM','Calc review','#5b8def']]],
+        ['TUE', '10', [['5:00 PM','Chem test prep','#b09cf5'], ['7:00 PM','Lab data due','#f5b14c']]],
+        ['WED', '11', [['4:30 PM','Equilibrium','#5b8def'], ['7:00 PM','Essay outline','#b09cf5']]],
+        ['THU', '12', [['DUE','Lab report','#f5b14c'], ['5:30 PM','Hamlet prep','#5b8def']]],
+        ['FRI', '13', [['9:00 AM','Chem Test','#f47174'], ['DUE','Vienna essay','#f5b14c']]]
+      ];
+      return `<section class="page">${pageTitle('Academic Planner', 'Week of June 9-13  -  balanced for your workload.')}
+        <div class="grid" style="grid-template-columns:minmax(0,1fr) 320px;align-items:start">
+          <div class="card month-wrap">
+            <div class="calendar-week">${days.map(day => `<div><div class="day-title"><div class="eyebrow">${day[0]}</div><div style="font-size:18px;font-weight:800;color:${day[0] === 'WED' ? 'var(--blue)' : '#dbe2f0'}">${day[1]}</div></div>${day[2].map(e => `<div class="event" style="--accent:${e[2]}"><div class="time">${e[0]}</div><div class="name">${e[1]}</div></div>`).join('')}</div>`).join('')}</div>
+            <div class="task red" style="--accent:var(--red);margin-top:16px"><div class="num">!</div><div style="font-size:12.5px;color:#dbe2f0"><strong style="color:#f4868a">Friday overload:</strong> a test and essay due the same day. Move essay work earlier in the week.</div></div>
+            <div style="margin-top:14px"><div class="eyebrow">Suggested workload balance</div><div style="display:flex;gap:5px;height:9px;border-radius:5px;overflow:hidden;margin-top:9px"><div style="width:18%;background:#5b8def"></div><div style="width:30%;background:#b09cf5"></div><div style="width:22%;background:#f5b14c"></div><div style="width:14%;background:#f47174"></div><div style="flex:1;background:rgba(255,255,255,.06)"></div></div><div class="meta" style="margin-top:8px">11h 20m planned  -  84% of recommended load</div></div>
+          </div>
+          <div class="card purple sticky"><h2 style="margin-bottom:16px">What The Hub recommends</h2><div class="list">${actionCard('Move Hamlet presentation prep earlier to avoid Friday overload.')}${actionCard('Review Chemistry before starting History because test risk is higher.')}${actionCard('Break the AP World midterm prep into three shorter sessions.')}</div></div>
+        </div>
+      </section>`;
+    }
+
+    function assignmentsPage() {
+      const a = assignments[state.selectedAssignment];
+      const list = Object.entries(assignments).map(([id, item]) => `<button type="button" class="assignment ${id === state.selectedAssignment ? 'selected' : ''}" data-assignment="${id}">
+        <div style="display:flex;justify-content:space-between;gap:10px"><div style="font-size:14.5px;font-weight:800;line-height:1.3">${item.title}</div>${chip(item.risk, item.risk === 'HIGH' ? 'red' : item.risk === 'MED' ? 'amber' : 'blue')}</div>
+        <div class="meta" style="margin-top:6px">${item.course}  -  ${item.type}  -  ${item.hours}  -  ${item.due}</div>
+        <div style="display:flex;align-items:center;gap:9px;margin-top:11px"><div class="progress" style="flex:1"><span style="--w:${item.completion}%;background:${item.accent}"></span></div><span class="meta" style="color:${item.accent};font-weight:800">${item.completion}%</span></div>
+      </button>`).join('');
+      return `<section class="page">${pageTitle('Assignments', 'Select an assignment to open its Hub Intelligence panel.')}
+        <div class="grid assign-grid">
+          <div class="list">${list}</div>
+          <div class="card sticky" style="border-color:rgba(91,141,239,.2)">
+            <div class="panel-header"><div class="eyebrow" style="color:#9fb4ee">Hub Intelligence</div><h2 style="font-size:22px;margin-top:7px">${a.title}</h2><div class="meta" style="margin-top:6px">${a.course}  -  ${a.type}  -  ${a.hours}  -  ${a.due}</div></div>
+            <p style="font-size:13.5px;line-height:1.58;color:#dbe2f0;margin-bottom:18px">${a.summary}</p>
+            <div class="grid" style="grid-template-columns:1fr 1fr">
+              ${infoBox('Requirements', a.requirements.map(checkRow).join(''))}
+              ${infoBox('Suggested outline', a.outline.map((x) => `<div class="check-row"><span class="check">-</span><span>${x}</span></div>`).join(''))}
+              ${infoBox('Milestones', a.milestones.map(m => `<div class="check-row"><span class="check">${m[1] ? 'done' : 'todo'}</span><span>${m[0]}</span></div>`).join(''))}
+              ${infoBox('Materials', `<div style="display:flex;flex-wrap:wrap;gap:8px">${a.materials.map(m => chip(m, 'blue')).join('')}</div>`)}
+              ${infoBox('Risks', a.risks.map(r => `<div class="check-row"><span class="check" style="color:var(--red)">!</span><span>${r}</span></div>`).join(''))}
+              ${infoBox('Next actions', a.actions.map(r => `<div class="check-row"><span class="check" style="color:var(--green)">next</span><span>${r}</span></div>`).join(''))}
+            </div>
+            <div style="margin-top:18px;padding:14px;border-radius:13px;background:rgba(63,200,160,.07);border:1px solid rgba(63,200,160,.18);font-size:12px;line-height:1.5;color:#9fe0c4"><strong style="color:#7fe9c0">Academic Integrity.</strong> The Hub helps you plan and understand the work. It does not complete assignments for you.</div>
+          </div>
+        </div>
+      </section>`;
+    }
+    function checkRow(text) { return `<div class="check-row"><svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg><span>${text}</span></div>`; }
+    function infoBox(title, body) { return `<div style="border-radius:15px;padding:16px;background:rgba(5,8,15,.28);border:1px solid rgba(255,255,255,.06)"><div class="eyebrow" style="color:#9fb4ee;margin-bottom:12px">${title}</div><div class="list">${body}</div></div>`; }
+
+    function studyPage() {
+      return `<section class="page medium">${pageTitle('Study Center', 'Chemistry Equilibrium  -  your focus for the next 3 days.')}
+        ${tabs('studyTab', [['guide','Study Guide'], ['cards','Flashcards'], ['practice','Practice Questions'], ['path','Study Path']])}
+        ${state.studyTab === 'guide' ? studyGuide() : state.studyTab === 'cards' ? flashcards() : state.studyTab === 'practice' ? practice() : studyPath()}
+      </section>`;
+    }
+    function tabs(key, items) {
+      return `<div class="tabbar">${items.map(([id, label]) => `<button type="button" class="${state[key] === id ? 'active' : ''}" data-tab-key="${key}" data-tab="${id}">${label}</button>`).join('')}</div>`;
+    }
+    function studyGuide() {
+      return `<div class="card" style="max-width:760px"><div style="display:flex;gap:9px;align-items:center;margin-bottom:18px"><span class="eyebrow" style="color:#9fb4ee">Study Guide</span><span class="meta"> -  4 min read</span></div><h2 style="font-size:22px;margin-bottom:16px">Chemical Equilibrium</h2><div class="list" style="gap:18px">${guideBlock('Core idea','At equilibrium, forward and reverse reaction rates are equal. Concentrations stop changing, but both reactions continue. The position of equilibrium is described by K.')}${guideBlock('ICE tables','Track Initial, Change, and Equilibrium concentrations. Changes follow stoichiometric ratios; solve for the unknown using K.')}${guideBlock("Le Chatelier's principle",'A system at equilibrium shifts to counteract stress: added reactant shifts forward, increased pressure favors fewer gas moles, and temperature favors the endothermic direction.')}<div class="task" style="--accent:var(--amber);background:rgba(245,177,76,.07);border-color:rgba(245,177,76,.2)"><div class="num">!</div><div style="font-size:13px;line-height:1.5;color:#f5d49a"><strong>Common mistake:</strong> forgetting that pure solids and liquids are excluded from the K expression.</div></div></div><button class="primary" data-tab-key="studyTab" data-tab="cards" style="margin-top:22px">Practice with flashcards</button></div>`;
+    }
+    function guideBlock(title, body) { return `<div><div style="font-size:13.5px;font-weight:800;color:#9fb4ee;margin-bottom:6px">${title}</div><p style="font-size:14px;line-height:1.65;color:#dbe2f0">${body}</p></div>`; }
+    function flashcards() {
+      const cards = [
+        ['c1','What is the difference between endpoint and equivalence point?','The equivalence point is where moles of acid equal moles of base. The endpoint is where the indicator changes color, ideally just after it.'],
+        ['c2','How does increasing temperature affect an endothermic equilibrium?','It shifts the equilibrium forward, toward products, since heat acts as a reactant and the system absorbs added energy.'],
+        ['c3','Which species are excluded from the equilibrium constant expression?','Pure solids and pure liquids. Their concentrations are constant, so they do not appear in K.']
+      ];
+      return `<div class="flashcards">${cards.map((c, i) => `<button class="flashcard" type="button" data-flip="${c[0]}"><div class="meta" style="display:flex;justify-content:space-between;margin-bottom:14px">Card ${i + 1} / 12 <span style="color:#9fb4ee">tap to flip</span></div><div style="flex:1;display:flex;align-items:center"><div style="font-size:${state.flips[c[0]] ? '13.5px' : '16px'};font-weight:${state.flips[c[0]] ? 500 : 800};line-height:1.55;color:${state.flips[c[0]] ? '#bcd0f5' : '#f3f6fc'}">${state.flips[c[0]] ? c[2] : c[1]}</div></div></button>`).join('')}</div>`;
+    }
+    function practice() {
+      return `<div class="list" style="max-width:780px">${practiceRow('EASY','Write the K expression for N2 + 3H2 <-> 2NH3.','green')}${practiceRow('MEDIUM','Given K and initial concentrations, solve an ICE table for equilibrium product concentration.','amber')}${practiceRow('HARD','Predict and justify the shift when pressure is doubled on a mixed-mole-count system.','red')}<div class="task" style="--accent:var(--purple);background:linear-gradient(140deg,rgba(176,156,245,.12),rgba(22,31,54,.6));border-color:rgba(176,156,245,.28)"><span class="chip blue">EXAM</span><div style="flex:1"><div style="font-size:14px;font-weight:800">Exam Mode</div><div class="meta" style="margin-top:2px">Timed 8-question set under test conditions.</div></div><button class="primary purple">Start</button></div></div>`;
+    }
+    function practiceRow(level, text, tone) { return `<div class="task"><span class="chip ${tone}" style="width:74px;justify-content:center">${level}</span><div style="flex:1;font-size:14px;font-weight:700">${text}</div><span style="color:#6b7894">&gt;</span></div>`; }
+    function studyPath() {
+      const steps = [['Review core concept','Read the Equilibrium study guide  -  4 min'], ['Complete flashcards','12 cards  -  build recall'], ['Try practice questions','Easy to hard progression'], ['Review mistakes','Hub flags the concepts you missed'], ['Recheck readiness','See your readiness score climb']];
+      return `<div style="max-width:640px;position:relative;padding-left:34px"><div style="position:absolute;left:14px;top:14px;bottom:14px;width:2px;background:linear-gradient(180deg,var(--blue),var(--purple))"></div>${steps.map((s, i) => `<div style="display:flex;gap:16px;margin-bottom:${i === steps.length - 1 ? 0 : 14}px;position:relative"><div style="position:absolute;left:-34px;width:30px;height:30px;border-radius:50%;background:${i === 4 ? 'var(--purple)' : 'var(--blue)'};display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff">${i + 1}</div><div class="card" style="flex:1;padding:15px 18px;border-radius:14px"><div style="font-size:14.5px;font-weight:800">${s[0]}</div><div class="meta" style="margin-top:3px">${s[1]}</div></div></div>`).join('')}</div>`;
+    }
+
+    function insightsPage() {
+      return `<section class="page">${pageTitle('Learning Insights', 'Your concept mastery map across every course.')}
+        <div class="grid two-col">
+          <div class="card" style="background:radial-gradient(circle at 1px 1px,rgba(255,255,255,.04) 1px,transparent 0) 0 0/22px 22px,linear-gradient(180deg,rgba(18,26,46,.8),rgba(10,15,28,.8));overflow:hidden"><div style="display:flex;justify-content:space-between;gap:12px;margin-bottom:4px"><h2>Concept Mastery Map</h2><div style="display:flex;gap:12px" class="meta"><span>Strong</span><span>Developing</span><span>Weak</span></div></div>${knowledgeSvg()}<div class="task red" style="--accent:var(--red);margin-top:8px"><div class="num">AI</div><div style="font-size:12.5px;line-height:1.5"><strong style="color:#f4868a">Equilibrium</strong> is your largest gap and connects to Titration; strengthening it lifts two concepts at once.</div></div></div>
+          <div class="list">${insightCard()}<div class="card"><div class="eyebrow">Mastery Trend  -  6 weeks</div>${trendSvg('#5b8def')}<div class="meta" style="display:flex;justify-content:space-between;margin-top:4px"><span>61%</span><span style="color:#7fe9c0">-> 74% (+13)</span></div></div><div class="card">${conceptTags()}</div></div>
+        </div>
+      </section>`;
+    }
+    function knowledgeSvg() {
+      return `<svg viewBox="0 0 600 450" style="width:100%;height:auto;display:block"><defs><radialGradient id="weak"><stop offset="0" stop-color="#f78b8d"/><stop offset="1" stop-color="#c94e51"/></radialGradient><radialGradient id="amber"><stop offset="0" stop-color="#f7c277"/><stop offset="1" stop-color="#d3902f"/></radialGradient><radialGradient id="green"><stop offset="0" stop-color="#5bd6a8"/><stop offset="1" stop-color="#2a9d77"/></radialGradient></defs><g stroke-linecap="round" fill="none" stroke="rgba(255,255,255,.12)"><line x1="180" y1="175" x2="330" y2="85"/><line x1="330" y1="85" x2="460" y2="185"/><line x1="180" y1="175" x2="175" y2="330"/><line x1="175" y1="330" x2="360" y2="320"/><line x1="360" y1="320" x2="480" y2="330"/><line x1="360" y1="320" x2="460" y2="185"/></g>${node(180,175,46,'weak','42%','Equilibrium','#fff')}${node(330,85,30,'amber','55','Titration','#1a1206')}${node(460,185,34,'amber','58','Integration','#1a1206')}${node(360,320,32,'amber','64','Congress of Vienna','#1a1206')}${node(175,330,30,'amber','60','Historical Causation','#1a1206')}${node(480,330,30,'green','71','Hamlet Themes','#04150e')}</svg>`;
+    }
+    function node(x,y,r,grad,score,label,color) { return `<g><circle cx="${x}" cy="${y}" r="${r}" fill="url(#${grad})" stroke="${grad === 'weak' ? '#f47174' : grad === 'green' ? '#3fc8a0' : '#f5b14c'}" stroke-width="2"/><text x="${x}" y="${y - 2}" text-anchor="middle" fill="${color}" font-size="${r > 34 ? 22 : 15}" font-weight="800">${score}</text><text x="${x}" y="${y + r + 24}" text-anchor="middle" fill="#c2cbe0" font-size="11.5" font-weight="700">${label}</text></g>`; }
+    function insightCard() { return `<div class="card blue" style="display:flex;align-items:center;gap:18px">${ring(74,'rgInsight',true)}<div><div class="eyebrow" style="color:#9fb4ee">Exam Readiness</div><div style="font-size:12.5px;color:#c2cbe0;margin-top:7px;line-height:1.4">On track for most courses. Chemistry needs the most work.</div></div></div>`; }
+    function trendSvg(color) { return `<svg viewBox="0 0 280 90" style="width:100%;height:auto;margin-top:12px"><polyline points="5,70 55,64 105,58 155,50 205,40 270,28" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/><polyline points="5,70 55,64 105,58 155,50 205,40 270,28 270,90 5,90" fill="rgba(91,141,239,.08)"/><circle cx="270" cy="28" r="4" fill="#7a9bf0"/></svg>`; }
+    function conceptTags() { return `<div style="display:grid;gap:14px"><div><div class="eyebrow" style="color:#7fe9c0;margin-bottom:8px">Strong Concepts</div>${chip('Hamlet Themes','green')} ${chip('Stoichiometry','green')}</div><div><div class="eyebrow" style="color:#f5c477;margin-bottom:8px">Developing Concepts</div>${chip('Integration','amber')} ${chip('Congress of Vienna','amber')} ${chip('Historical Causation','amber')}</div><div><div class="eyebrow" style="color:#f0a5a7;margin-bottom:8px">Weak Concepts</div>${chip('Equilibrium','red')} ${chip('Titration','red')}</div></div>`; }
+
+    function notesPage() {
+      const teacher = `<div class="card" style="max-width:720px"><div class="eyebrow" style="color:#9fb4ee;margin-bottom:14px">Teacher Notes  -  Ms. Tan</div><div class="list" style="gap:14px;font-size:14px;line-height:1.6;color:#dbe2f0"><div><strong>Equilibrium constant K</strong> - ratio of product to reactant concentrations at equilibrium, each raised to its coefficient.</div><div><strong>ICE tables</strong> - set up Initial / Change / Equilibrium rows; changes follow stoichiometry.</div><div><strong>Le Chatelier</strong> - systems shift to relieve stress.</div><div><strong>Reaction quotient Q</strong> - compare Q to K to predict direction.</div></div></div>`;
+      const mine = `<div class="card" style="max-width:720px"><div class="eyebrow" style="color:#c4b5f5;margin-bottom:14px">My Notes  -  Alex</div><div class="list" style="gap:14px;font-size:14px;line-height:1.6;color:#dbe2f0"><div><strong>K</strong> = products over reactants at equilibrium. Bigger K = more products.</div><div><strong>Le Chatelier</strong> - push the system, it pushes back. Add heat shifts toward endothermic side.</div><div><strong>Q vs K</strong> - if Q &lt; K, shifts right.</div></div></div>`;
+      const combined = `<div class="list" style="gap:18px"><div class="card red" style="border-radius:16px"><div style="display:flex;gap:9px;margin-bottom:12px"><div style="font-weight:800;color:#f4868a">Missing from your notes</div></div><div style="display:flex;flex-wrap:wrap;gap:9px">${chip('Equilibrium ICE tables','red')}${chip('Washer method setup','red')}${chip("Metternich's role in conservatism",'red')}</div></div><div class="note-grid">${teacher}${mine}</div></div>`;
+      return `<section class="page medium">${pageTitle('Notes', "Chemistry  -  Equilibrium unit. The Hub compares your notes against the teacher's.")}${tabs('notesTab', [['teacher','Teacher Notes'], ['mine','My Notes'], ['combined','Combined View']])}${state.notesTab === 'teacher' ? teacher : state.notesTab === 'mine' ? mine : combined}</section>`;
+    }
+
+    function calendarPage() {
+      const events = { 9: ['Calc review','#5b8def'], 10: ['Chem prep','#b09cf5'], 12: ['Lab report','#f5b14c'], 13: ['Chem Test','#f47174'], 16: ['Hamlet slides','#b09cf5'], 20: ['World Midterm','#f47174'] };
+      return `<section class="page">${pageTitle('June 2026', 'Your full academic month at a glance.')}<div class="card month-wrap"><div class="month head">${['MON','TUE','WED','THU','FRI','SAT','SUN'].map(d => `<div class="eyebrow" style="text-align:center">${d}</div>`).join('')}</div><div class="month">${Array.from({length:30}, (_,i) => i + 1).map(day => `<div class="cell ${[6,7,13,14,20,21,27,28].includes(day) ? 'weekend' : ''}"><div style="font-size:12px;font-weight:800;color:${[6,7,13,14,20,21,27,28].includes(day) ? '#5d6b8a' : '#dbe2f0'}">${day}</div>${events[day] ? `<div class="mini-event" style="--accent:${events[day][1]}">${events[day][0]}</div>` : ''}</div>`).join('')}</div></div></section>`;
+    }
+
+    function analyticsPage() {
+      return `<section class="page">${pageTitle('Analytics', "How you're trending across the term.")}
+        <div class="grid analytics-grid">${metric('Study time  -  wk', '11h 20m', 'up 18% vs last week')}${metric('Completion', '76%', 'up 5% on time')}${metric('Avg readiness', '74', 'up 13 over 6 weeks')}${metric('Study streak', '6 days', 'personal best')}</div>
+        <div class="grid two-col" style="margin-bottom:18px"><div class="card"><h2 style="margin-bottom:20px">Study time this week</h2><div class="bars">${[['M',55],['T',72],['W',90],['T',64],['F',48],['S',30],['S',38]].map(([d,h]) => `<div class="bar"><i style="--h:${h}%"></i><span class="meta">${d}</span></div>`).join('')}</div></div><div class="card"><h2>Readiness trend</h2>${trendSvg('#5b8def')}<div class="meta" style="display:flex;justify-content:space-between;margin-top:6px"><span>Wk 1</span><span>Wk 3</span><span style="color:#7fe9c0">74 now</span></div></div></div>
+        <div class="grid two-col"><div class="card"><h2 style="margin-bottom:18px">Subject performance</h2><div class="split-list">${progress('AP English Literature',81,'#3fc8a0')}${progress('AP Calculus BC',74,'#5b8def')}${progress('AP World History',70,'#f5b14c')}${progress('AP Chemistry',68,'#f47174')}</div></div><div class="card"><h2 style="margin-bottom:18px">Concept mastery trend</h2><div class="split-list">${spark('Equilibrium','#f47174','42%')}${spark('Integration','#f5b14c','58%')}${spark('Congress of Vienna','#f5b14c','64%')}${spark('Hamlet Themes','#3fc8a0','71%')}</div></div></div>
+      </section>`;
+    }
+    function spark(label, color, value) { return `<div style="display:flex;align-items:center;gap:14px"><span style="font-size:12.5px;font-weight:700;width:130px">${label}</span><svg viewBox="0 0 120 30" style="flex:1;height:30px"><polyline points="2,24 30,22 60,19 90,15 118,10" fill="none" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/></svg><span class="meta" style="color:${color};font-weight:800">${value}</span></div>`; }
+
+    function settingsPage() {
+      return `<section class="page narrow">${pageTitle('Settings', 'Configure The Hub for how you learn.')}
+        <div class="list" style="gap:16px">
+          <div class="card"><div class="eyebrow" style="color:#9fb4ee;margin-bottom:16px">Account</div>${settingRow('Google account','alex.rivera@school.edu','google')}</div>
+          <div class="card"><div class="eyebrow" style="color:#9fb4ee;margin-bottom:6px">Learning</div>${settingRow('Demo mode','Use sample data for presentations.','demo')}${settingRow('Academic integrity mode','Hub Coach guides and plans, never completes work.','integrity','green')}<div style="padding:16px 0 6px"><div style="font-size:13.5px;font-weight:800;margin-bottom:12px">Target grades</div><div style="display:flex;flex-wrap:wrap;gap:10px">${grade('Chemistry','A-')}${grade('Calculus','A')}${grade('World History','B+')}</div></div></div>
+          <div class="card"><div class="eyebrow" style="color:#9fb4ee;margin-bottom:6px">Notifications</div>${settingRow('Email summaries','Weekly readiness and assignment digest.','email')}${settingRow('Push alerts','Same-day deadline nudges.','push')}${settingRow('Study reminders','Prompt me before planned sessions.','reminders')}</div>
+        </div>
+      </section>`;
+    }
+    function settingRow(title, detail, key, tone = '') { return `<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)"><div style="padding-right:20px"><div style="font-size:13.5px;font-weight:800">${title}</div><div class="meta" style="margin-top:2px">${detail}</div></div><button class="toggle ${tone} ${state.settings[key] ? 'on' : ''}" type="button" data-setting="${key}" aria-label="${title}"></button></div>`; }
+    function grade(k, v) { return `<div style="display:flex;align-items:center;gap:9px;padding:9px 13px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)"><span style="font-size:12.5px;color:#c2cbe0">${k}</span><span class="meta" style="color:#9fb4ee;font-weight:800">${v}</span></div>`; }
+
+    function coachContent() {
+      const teacher = state.view === 'teacher';
+      return `<div class="list" style="gap:12px">
+        ${teacher ? `<button class="question">Which students need support?</button><button class="question">What should I reteach tomorrow?</button><button class="question">Create a targeted review group</button><div class="bubble">Your class is least prepared for <strong>Equilibrium</strong>. Average mastery is 48%, and 5 students are moderate or high risk. Start tomorrow with a short targeted review.</div>` : `<button class="question">What should I do first tonight?</button><button class="question">Explain equilibrium in simpler words</button><button class="question">Make a 45-minute study plan</button><div class="bubble user">What should I prioritize?</div><div class="bubble">Start with <strong>Chemistry Equilibrium</strong>. It has the closest test date and the biggest mastery gap. Do 25 minutes of core review, then 20 minutes of flashcards.</div>`}
+      </div>`;
+    }
+    function renderCoach() {
+      document.getElementById('coachPanel').classList.toggle('open', state.coachOpen);
+      document.getElementById('coachBody').innerHTML = coachContent();
+    }
+    function renderMain() {
+      if (state.page === 'dashboard') main.innerHTML = state.view === 'teacher' ? teacherDashboard() : studentDashboard();
+      if (state.page === 'planner') main.innerHTML = plannerPage();
+      if (state.page === 'assignments') main.innerHTML = assignmentsPage();
+      if (state.page === 'study') main.innerHTML = studyPage();
+      if (state.page === 'insights') main.innerHTML = insightsPage();
+      if (state.page === 'notes') main.innerHTML = notesPage();
+      if (state.page === 'calendar') main.innerHTML = calendarPage();
+      if (state.page === 'analytics') main.innerHTML = analyticsPage();
+      if (state.page === 'settings') main.innerHTML = settingsPage();
+    }
+    function render() {
+      renderNav();
+      renderMain();
+      renderProfile();
+      renderCoach();
+    }
+
+    document.addEventListener('click', (event) => {
+      const pageBtn = event.target.closest('[data-page]');
+      if (pageBtn) go(pageBtn.dataset.page);
+      const assignBtn = event.target.closest('[data-assignment]');
+      if (assignBtn) setState({ selectedAssignment: assignBtn.dataset.assignment });
+      const tabBtn = event.target.closest('[data-tab]');
+      if (tabBtn) setState({ [tabBtn.dataset.tabKey]: tabBtn.dataset.tab });
+      const flipBtn = event.target.closest('[data-flip]');
+      if (flipBtn) setState(s => ({ flips: { ...s.flips, [flipBtn.dataset.flip]: !s.flips[flipBtn.dataset.flip] } }));
+      const setBtn = event.target.closest('[data-setting]');
+      if (setBtn) setState(s => ({ settings: { ...s.settings, [setBtn.dataset.setting]: !s.settings[setBtn.dataset.setting] } }));
+      if (event.target.closest('[data-coach-open]') || event.target.closest('#coachFab')) setState({ coachOpen: !state.coachOpen });
+    });
+    document.getElementById('studentBtn').addEventListener('click', () => setView('student'));
+    document.getElementById('teacherBtn').addEventListener('click', () => setView('teacher'));
+    document.getElementById('profileBtn').addEventListener('click', () => setState({ profileOpen: !state.profileOpen }));
+    document.getElementById('signOutBtn').addEventListener('click', () => setState({ signedIn: false, profileOpen: false }));
+    document.getElementById('signInBtn').addEventListener('click', () => setState({ signedIn: true, profileOpen: false }));
+    document.getElementById('closeCoach').addEventListener('click', () => setState({ coachOpen: false }));
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setState({ profileOpen: false, coachOpen: false }); });
+    render();
+  </script>
+</body>
+</html>
