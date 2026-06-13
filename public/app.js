@@ -30,7 +30,6 @@ const state = {
   },
   profile: null,
   classroom: { connected: false, configured: true, email: null, name: null, courses: [] },
-  demoMode: true,
   signedIn: true,
   profileOpen: false,
   coachOpen: false,
@@ -38,7 +37,6 @@ const state = {
     { role: 'assistant', text: 'How much time do you have, and how tired are you?' }
   ],
   settings: {
-    demo: true,
     google: false,
     integrity: true,
     blockLength: 25,
@@ -1177,7 +1175,6 @@ document.addEventListener('click', (event) => {
   if (settingBtn) {
     const key = settingBtn.dataset.setting;
     state.settings[key] = !state.settings[key];
-    if (key === 'demo') state.demoMode = state.settings.demo;
     render();
   }
 

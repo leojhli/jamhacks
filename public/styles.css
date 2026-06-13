@@ -301,7 +301,6 @@ summary:focus-visible {
   color: var(--ink);
 }
 .top-actions { display: flex; align-items: center; gap: 10px; }
-.demo-pill,
 .icon-button,
 .profile-button,
 .primary-button,
@@ -311,30 +310,6 @@ summary:focus-visible {
   min-height: 42px;
   font-weight: 800;
 }
-
-/* Demo Mode = laminated hall pass */
-.demo-pill {
-  position: relative;
-  padding: 0 15px 0 26px;
-  color: #4a3500;
-  background: var(--amber);
-  border: 2px solid var(--ink);
-  box-shadow: var(--shadow-sm);
-  transition: transform .12s ease-out, box-shadow .12s ease-out;
-}
-.demo-pill::before {
-  content: "";
-  position: absolute;
-  left: 9px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--desk);
-  border: 2px solid var(--ink);
-}
-.demo-pill:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,0); }
 
 /* Notify = round button badge */
 .icon-button {
