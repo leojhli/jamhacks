@@ -23,7 +23,10 @@ const state = {
     refOpen: false,
     sharpening: false,
     sharpenFrom: 100,
-    sharpenTimer: null
+    sharpenTimer: null,
+    growing: false,
+    growFrom: 100,
+    growTimer: null
   },
   profile: null,
   classroom: { connected: false, configured: true, email: null, name: null, courses: [] },
@@ -577,9 +580,13 @@ function renderSession() {
   const completedMinutes = sessionProgressMinutes();
   const percent = totalMinutes ? Math.round((completedMinutes / totalMinutes) * 100) : 0;
   const remaining = totalMinutes ? Math.max(0, 100 - (completedMinutes / totalMinutes) * 100) : 100;
+  const spent = remaining <= 0.001;
   const pencilWidth = `calc((100% - 18px) * ${(remaining / 100).toFixed(4)})`;
   const pencilStartWidth = `calc((100% - 18px) * ${(state.session.sharpenFrom / 100).toFixed(4)})`;
+  const pencilGrowWidth = `calc((100% - 18px) * ${(state.session.growFrom / 100).toFixed(4)})`;
   const sharpening = state.session.sharpening;
+  const growing = state.session.growing;
+  const showPencil = !spent || sharpening;
   const acts = sessionActivities();
   const currentActivityId = step.activityId;
   const refStep = step.kind === 'summary' ? null : step;
@@ -610,7 +617,7 @@ function renderSession() {
         <button class="ghost-button session-exit" data-session-exit type="button">← Back to plan</button>
         <div class="session-progress">
           <div class="pencil-meter" role="progressbar" aria-label="Session progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}">
-            <div class="pencil ${sharpening ? 'is-sharpening' : ''} ${remaining === 0 ? 'spent' : ''}" style="width:${pencilWidth};--pencil-from:${pencilStartWidth}" aria-hidden="true">
+            <div class="pencil ${sharpening ? 'is-sharpening' : ''} ${growing ? 'is-growing' : ''} ${spent && !sharpening ? 'spent' : ''}" style="width:${pencilWidth};--pencil-from:${pencilStartWidth};--pencil-grow-from:${pencilGrowWidth}" aria-hidden="true">
               <span class="tip"></span>
               <span class="barrel"></span>
               <span class="ferrule"></span>
@@ -623,7 +630,7 @@ function renderSession() {
                 </span>
               ` : ''}
             </div>
-            <span class="pencil-eraser" aria-hidden="true"></span>
+            ${showPencil ? '<span class="pencil-eraser" aria-hidden="true"></span>' : ''}
           </div>
           <div class="session-progress-meta">
             <span>${Math.round(completedMinutes)} of ${totalMinutes} min completed</span>
@@ -681,7 +688,10 @@ async function openSession() {
   state.session.refOpen = false;
   state.session.sharpening = false;
   state.session.sharpenFrom = 100;
+  state.session.growing = false;
+  state.session.growFrom = 100;
   clearTimeout(state.session.sharpenTimer);
+  clearTimeout(state.session.growTimer);
   document.body.classList.add('session-active');
   renderSession();
 
@@ -704,7 +714,9 @@ function closeSession() {
   state.session.open = false;
   state.session.refOpen = false;
   state.session.sharpening = false;
+  state.session.growing = false;
   clearTimeout(state.session.sharpenTimer);
+  clearTimeout(state.session.growTimer);
   document.body.classList.remove('session-active');
   renderSession();
   render();
@@ -734,7 +746,9 @@ function sessionNext() {
       state.session.sharpenFrom = totalMinutes ? Math.max(0, 100 - (completedBefore / totalMinutes) * 100) : 100;
       state.session.advances[current.activityId] = [...completedAdvances, advanceNumber];
       state.session.sharpening = true;
+      state.session.growing = false;
       clearTimeout(state.session.sharpenTimer);
+      clearTimeout(state.session.growTimer);
       state.session.sharpenTimer = setTimeout(() => {
         state.session.sharpening = false;
         renderSession();
@@ -743,6 +757,35 @@ function sessionNext() {
   }
 
   sessionGo(state.session.index + 1);
+}
+
+function sessionBack() {
+  const current = state.session.steps[state.session.index];
+  const previous = state.session.steps[state.session.index - 1];
+  if (!current || !previous) return;
+
+  if (current.activityId && current.activityId === previous.activityId) {
+    const activitySteps = state.session.steps.filter((item) => item.activityId === current.activityId);
+    const advanceNumber = activitySteps.indexOf(current);
+    const completedAdvances = state.session.advances[current.activityId] || [];
+
+    if (completedAdvances.includes(advanceNumber)) {
+      const totalMinutes = (state.plan?.plan || []).reduce((sum, item) => sum + item.minutes, 0);
+      const completedBefore = sessionProgressMinutes();
+      state.session.growFrom = totalMinutes ? Math.max(0, 100 - (completedBefore / totalMinutes) * 100) : 100;
+      state.session.advances[current.activityId] = completedAdvances.filter((item) => item !== advanceNumber);
+      state.session.sharpening = false;
+      state.session.growing = true;
+      clearTimeout(state.session.sharpenTimer);
+      clearTimeout(state.session.growTimer);
+      state.session.growTimer = setTimeout(() => {
+        state.session.growing = false;
+        renderSession();
+      }, 650);
+    }
+  }
+
+  sessionGo(state.session.index - 1);
 }
 
 function sessionMarkDone(id) {
@@ -1107,7 +1150,7 @@ document.addEventListener('click', (event) => {
   if (event.target.closest('[data-session-exit]')) { closeSession(); return; }
   if (event.target.closest('[data-session-finish]')) { closeSession(); return; }
   if (event.target.closest('[data-session-next]')) { sessionNext(); return; }
-  if (event.target.closest('[data-session-back]')) { sessionGo(state.session.index - 1); return; }
+  if (event.target.closest('[data-session-back]')) { sessionBack(); return; }
   const jumpBtn = event.target.closest('[data-session-jump]');
   if (jumpBtn) { sessionGo(Number(jumpBtn.dataset.sessionJump)); return; }
   const doneBtn = event.target.closest('[data-session-done]');
@@ -1218,7 +1261,7 @@ document.addEventListener('keydown', (event) => {
       return;
     }
     if (event.key === 'ArrowRight') { sessionNext(); return; }
-    if (event.key === 'ArrowLeft') { sessionGo(state.session.index - 1); return; }
+    if (event.key === 'ArrowLeft') { sessionBack(); return; }
     return;
   }
   if (event.target.id === 'searchInput' && event.key === 'Enter') {
