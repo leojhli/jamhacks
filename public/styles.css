@@ -1081,6 +1081,10 @@ p { text-wrap: pretty; }
 .assignment-grid { display: grid; grid-template-columns: minmax(300px, .9fr) minmax(420px, 1.1fr); gap: 22px; align-items: start; }
 .assignment-grid > *,
 .detail-panel { min-width: 0; }
+.assignment-detail-slot { min-width: 0; }
+.assignment-detail-slot > .detail-panel {
+  animation: radar-detail-reveal .22s var(--ease-out-quart) both;
+}
 .detail-panel li,
 .detail-panel p { overflow-wrap: anywhere; }
 .assignment-list { display: grid; gap: 12px; }
@@ -1472,6 +1476,10 @@ p { text-wrap: pretty; }
 @keyframes surface-reveal {
   from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
   to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+@keyframes radar-detail-reveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes soft-reveal {
   from { opacity: 0; transform: translateY(-4px); }

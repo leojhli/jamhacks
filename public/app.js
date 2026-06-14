@@ -854,7 +854,7 @@ function renderRadarPage() {
       <div class="assignment-list">
         ${state.assignments.map((item) => assignmentCard(item, state.selectedAssignment === item.id)).join('')}
       </div>
-      ${panel}
+      <div class="assignment-detail-slot" aria-live="polite">${panel}</div>
     </div>
   `);
 }
@@ -907,20 +907,34 @@ function assignmentDetail(item) {
 }
 
 async function selectAssignment(id) {
+  if (id === state.selectedAssignment && state.assignmentDetails[id]) return;
   state.selectedAssignment = id;
+
+  document.querySelectorAll('[data-assignment]').forEach((button) => {
+    const active = button.dataset.assignment === id;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+
+  const detailSlot = main.querySelector('.assignment-detail-slot');
   if (state.assignmentDetails[id]) {
-    render();
+    if (detailSlot) detailSlot.innerHTML = assignmentDetail(state.assignmentDetails[id]);
     return;
   }
+
   state.assignmentLoading = true;
-  render();
+  if (detailSlot) detailSlot.innerHTML = '<div class="card detail-panel"><div class="skeleton" style="height:360px"></div></div>';
   try {
     state.assignmentDetails[id] = await api(`/assignments/${encodeURIComponent(id)}`);
   } catch (error) {
     toast('Could not load assignment details');
   } finally {
     state.assignmentLoading = false;
-    render();
+    if (detailSlot) {
+      detailSlot.innerHTML = state.assignmentDetails[id]
+        ? assignmentDetail(state.assignmentDetails[id])
+        : '<div class="card detail-panel">Could not load assignment intelligence.</div>';
+    }
   }
 }
 
