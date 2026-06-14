@@ -512,7 +512,7 @@ h1 {
 h2 { font-size: 22px; letter-spacing: -.03em; }
 h3 { margin-bottom: 8px; font-size: 16px; }
 p { text-wrap: pretty; }
-.hero h1 { color: #2c2110; }
+.hero h1 { color: #2c2110; font-size: 58px; word-spacing: 0.22em; }
 .hero p {
   max-width: 650px;
   color: #4a3f2b;
@@ -551,6 +551,29 @@ p { text-wrap: pretty; }
 .decision-card h2, .next-action h2 { font-family: var(--display); font-weight: 700; letter-spacing: -.02em; }
 .next-action h2 { font-size: 36px; line-height: 1.05; margin-bottom: 12px; }
 .next-action p { font-family: var(--font); color: #cfe0d4; line-height: 1.55; }
+
+/* Pixel-art charms pinned to the cork board for flair */
+.board-charm {
+  position: absolute;
+  z-index: 2;
+  filter: drop-shadow(2px 3px 0 rgba(48,36,14,.32));
+}
+.board-charm svg { display: block; image-rendering: pixelated; }
+.board-charm::before {                 /* little tack holding the charm */
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #ffd877 0 2px, #f0a32a 60%, #c47d12 100%);
+  border: 1.5px solid var(--ink);
+  z-index: 3;
+}
+.board-charm-grape { bottom: 18px; left: 28px; transform: rotate(-7deg); }
+.board-charm-cat { bottom: 16px; right: 34px; transform: rotate(6deg); }
 
 .panel-grid { display: grid; grid-template-columns: minmax(0, .92fr) minmax(420px, 1.08fr); gap: 22px; margin-top: 22px; }
 .panel-grid > .plan-context { grid-column: 1 / -1; }
@@ -1196,53 +1219,52 @@ p { text-wrap: pretty; }
 .mini-box ul { margin: 10px 0 0; padding-left: 18px; line-height: 1.55; }
 
 /* Gap cards = flashcards (dog-ear + tab) */
+/* Gap card = cream study card with a severity-coloured spine + score badge */
 .gap-card {
   position: relative;
   display: grid;
-  grid-template-columns: 82px 1fr;
-  gap: 16px;
+  grid-template-columns: 86px 1fr;
+  gap: 18px;
+  align-items: start;
+  padding: 22px 22px 22px 20px;
   background: var(--paper);
-  padding-top: 24px;
-  box-shadow: var(--shadow-sm);
+  border: 2px solid var(--ink);
+  border-left: 9px solid var(--accent, var(--lav));
+  border-radius: 12px;
+  box-shadow: var(--shadow);
   transition: transform .14s ease-out, box-shadow .14s ease-out;
 }
-.gap-card:hover { transform: translateY(-3px); box-shadow: 5px 7px 0 rgba(48,36,14,.18); }
-.gap-card::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: 18px;
-  width: 76px;
-  height: 12px;
-  background: var(--note-orange);
-  border: 2px solid var(--ink);
-  border-top: 0;
-  border-radius: 0 0 6px 6px;
-}
+.gap-card.sev-red { --accent: var(--red); }
+.gap-card.sev-amber { --accent: var(--amber); }
+.gap-card.sev-green { --accent: var(--green); }
+.gap-card:hover { transform: translateY(-3px); box-shadow: 6px 8px 0 rgba(48,36,14,.18); }
+/* folded paper dog-ear, bottom-right */
 .gap-card::after {
   content: "";
   position: absolute;
-  right: -1px;
-  bottom: -1px;
-  border-width: 0 0 24px 24px;
+  right: 0;
+  bottom: 0;
+  border-width: 0 0 22px 22px;
   border-style: solid;
-  border-color: transparent transparent #e3d3a4 transparent;
-  border-bottom-right-radius: 8px;
+  border-color: transparent transparent #e6d6ad transparent;
+  border-bottom-right-radius: 12px;
 }
+.gap-card h3 { margin: 8px 0; }
+.gap-card p { margin: 5px 0; }
 
-/* Mastery orb = grade stamp */
+/* Mastery % = clean score badge, ring colour-coded by severity */
 .mastery-orb {
-  width: 82px;
-  height: 82px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #fff;
-  font-size: 22px;
-  font-weight: 900;
-  background: var(--lav);
-  border: 4px solid #fff;
-  box-shadow: 0 0 0 2px var(--ink);
+  background: #fffdf6;
+  color: var(--ink);
+  font-size: 23px;
+  font-weight: 800;
+  border: 4px solid var(--accent, var(--lav));
+  box-shadow: 0 0 0 2px var(--ink), 3px 4px 0 rgba(48,36,14,.18);
 }
 
 /* Timeline = planner rows */
@@ -1548,7 +1570,6 @@ p { text-wrap: pretty; }
    ============================================================ */
 .nav-icon,
 .time-chip,
-.mastery-orb,
 .icon-button,
 .avatar,
 .brand-mark {
@@ -1566,7 +1587,6 @@ p { text-wrap: pretty; }
 .icon-button { font-size: 12px; }
 .avatar { font-size: 9px; letter-spacing: -1px; }
 .time-chip { font-size: 9px; line-height: 1.4; }
-.mastery-orb { font-size: 13px; }
 
 /* Pixel logo: square eye instead of the round mark */
 .brand-mark span,

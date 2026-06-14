@@ -31,6 +31,7 @@ const state = {
   },
   profile: null,
   classroom: { connected: false, configured: true, email: null, name: null, courses: [] },
+  db: { connected: false, configured: false, counts: null },
   signedIn: true,
   profileOpen: false,
   coachOpen: false,
@@ -235,6 +236,10 @@ function updatePlanOptions(key) {
   }
 }
 
+// Pixel-art charms pinned to the cork board for flair.
+const grapeCharm = '<svg viewBox="0 0 12 13" width="46" height="50" shape-rendering="crispEdges"><rect x="5" y="0" width="1" height="2" fill="#6b4a2a"/><rect x="6" y="0" width="2" height="1" fill="#5fae3f"/><rect x="7" y="1" width="1" height="1" fill="#5fae3f"/><rect x="3" y="2" width="6" height="1" fill="#7c4dbe"/><rect x="2" y="3" width="8" height="6" fill="#7c4dbe"/><rect x="2" y="3" width="1" height="3" fill="#9d6fe0"/><rect x="3" y="9" width="6" height="1" fill="#5e379c"/><rect x="4" y="10" width="4" height="1" fill="#5e379c"/><rect x="4" y="4" width="1" height="2" fill="#fff"/><rect x="7" y="4" width="1" height="2" fill="#fff"/><rect x="4" y="5" width="1" height="1" fill="#2a1840"/><rect x="7" y="5" width="1" height="1" fill="#2a1840"/><rect x="5" y="7" width="2" height="1" fill="#2a1840"/></svg>';
+const catCharm = '<svg viewBox="0 0 12 12" width="46" height="46" shape-rendering="crispEdges"><rect x="2" y="1" width="2" height="2" fill="#7c4dbe"/><rect x="8" y="1" width="2" height="2" fill="#7c4dbe"/><rect x="2" y="2" width="1" height="1" fill="#ff9fbf"/><rect x="9" y="2" width="1" height="1" fill="#ff9fbf"/><rect x="2" y="3" width="8" height="7" fill="#7c4dbe"/><rect x="2" y="3" width="1" height="2" fill="#9d6fe0"/><rect x="4" y="5" width="1" height="2" fill="#fff"/><rect x="7" y="5" width="1" height="2" fill="#fff"/><rect x="4" y="6" width="1" height="1" fill="#2a1840"/><rect x="7" y="6" width="1" height="1" fill="#2a1840"/><rect x="5" y="7" width="2" height="1" fill="#ff9fbf"/><rect x="10" y="6" width="1" height="3" fill="#7c4dbe"/><rect x="3" y="10" width="2" height="1" fill="#5e379c"/><rect x="7" y="10" width="2" height="1" fill="#5e379c"/></svg>';
+
 function renderPlanPage() {
   const output = state.loadingPlan ? loadingPlan() : state.plan ? planOutput(state.plan) : planCalendarBoard();
   main.innerHTML = `
@@ -255,6 +260,8 @@ function renderPlanPage() {
             </div>
           </div>
         </div>
+        <div class="board-charm board-charm-grape" aria-hidden="true">${grapeCharm}</div>
+        <div class="board-charm board-charm-cat" aria-hidden="true">${catCharm}</div>
       </div>
 
       <div class="panel-grid">
@@ -937,7 +944,7 @@ function renderGapsPage() {
   main.innerHTML = pageShell('Learning Gaps', 'See which topics need work before the next deadline.', `
     <div class="two-col">
       ${state.gaps.map((gap) => `
-        <article class="gap-card">
+        <article class="gap-card sev-${gap.mastery < 50 ? 'red' : gap.mastery < 65 ? 'amber' : 'green'}">
           <div class="mastery-orb">${gap.mastery}%</div>
           <div>
             <div class="chip-row">${chip(gap.course, courseClass(gap.course))}${abilityChip(gap.mastery)}</div>
@@ -977,6 +984,7 @@ function renderCalendarPage() {
 function renderSettingsPage() {
   main.innerHTML = pageShell('Settings', 'Choose how The Hub works for you.', `
     <div class="settings-grid">
+      ${dbSettingRow()}
       ${googleSettingRow()}
       ${settingRow('Academic integrity mode', 'The Hub plans and teaches starts. It does not produce submissions.', 'integrity')}
       <div class="setting-row">
@@ -989,6 +997,34 @@ function renderSettingsPage() {
       </div>
     </div>
   `);
+}
+
+function dbSettingRow() {
+  const d = state.db || {};
+  if (d.connected) {
+    const c = d.counts || {};
+    return `
+      <div class="setting-row">
+        <div>
+          <strong>Database &mdash; MongoDB</strong>
+          <p>${chip('Connected', 'green')} <span class="meta">db: ${d.db || 'the_hub'}</span></p>
+          <p class="meta">${c.assignments ?? 0} assignments &middot; ${c.gaps ?? 0} learning gaps &middot; ${c.plans ?? 0} saved plans</p>
+        </div>
+      </div>
+    `;
+  }
+  const note = d.configured
+    ? 'Could not reach the cluster. The app is running on in-memory demo data.'
+    : 'Not configured. Add MONGODB_URI to server/secrets.json to persist data in MongoDB.';
+  return `
+    <div class="setting-row">
+      <div>
+        <strong>Database &mdash; MongoDB</strong>
+        <p>${chip('In-memory fallback', 'amber')}</p>
+        <p class="meta">${note}</p>
+      </div>
+    </div>
+  `;
 }
 
 function googleSettingRow() {
@@ -1129,6 +1165,14 @@ async function disconnectGoogle() {
   render();
 }
 
+async function loadDbStatus() {
+  try {
+    state.db = await api('/db/status');
+  } catch (error) {
+    // leave defaults
+  }
+}
+
 async function loadClassroom() {
   try {
     const status = await api('/classroom/status');
@@ -1171,6 +1215,7 @@ function render() {
 
 async function loadData() {
   handleGoogleReturn();
+  await loadDbStatus();
   await loadClassroom();
   try {
     const data = await api('/bootstrap');

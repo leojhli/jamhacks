@@ -6,6 +6,29 @@ const { profile, calendar } = require('./demoData');
 const { getAssignmentCards, getAssignmentDetail, getLearningGaps } = require('./academicData');
 const { buildPlan, coach } = require('./planner');
 const googleAuth = require('./googleAuth');
+const db = require('./db');
+
+// Read app data from MongoDB when it is connected, else fall back to the
+// in-memory demo data so the app always works.
+async function getBootstrapData() {
+  if (db.isConnected()) {
+    const [mProfile, cards, gaps, cal] = await Promise.all([
+      db.readProfile(), db.readCards(), db.readGaps(), db.readCalendar()
+    ]);
+    if (cards && gaps && cal) {
+      return { profile: mProfile || profile, assignments: cards, gaps, calendar: cal };
+    }
+  }
+  return { profile, assignments: getAssignmentCards(), gaps: getLearningGaps(), calendar };
+}
+
+async function getAssignmentDetailData(id) {
+  if (db.isConnected()) {
+    const detail = await db.readDetail(id);
+    if (detail) return detail;
+  }
+  return getAssignmentDetail(id);
+}
 
 const root = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT || 3000);
@@ -86,19 +109,27 @@ async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/health') return send(res, 200, { ok: true });
   if (req.method === 'GET' && url.pathname === '/api/profile') return send(res, 200, profile);
   if (req.method === 'GET' && url.pathname === '/api/bootstrap') {
-    return send(res, 200, { profile, assignments: getAssignmentCards(), gaps: getLearningGaps(), calendar });
+    return send(res, 200, await getBootstrapData());
   }
   if (req.method === 'GET' && url.pathname === '/api/assignments') return send(res, 200, getAssignmentCards());
   if (req.method === 'GET' && url.pathname.startsWith('/api/assignments/')) {
     const id = decodeURIComponent(url.pathname.split('/').pop());
-    const assignment = getAssignmentDetail(id);
+    const assignment = await getAssignmentDetailData(id);
     return assignment ? send(res, 200, assignment) : notFound(res);
   }
   if (req.method === 'GET' && url.pathname === '/api/learning-gaps') return send(res, 200, getLearningGaps());
   if (req.method === 'GET' && url.pathname === '/api/calendar') return send(res, 200, calendar);
   if (req.method === 'POST' && url.pathname === '/api/plan-night') {
     const body = await readBody(req);
-    return send(res, 200, buildPlan(body));
+    const plan = buildPlan(body);
+    db.savePlan(body, plan).catch((err) => console.warn('Plan persistence skipped:', err.message));
+    return send(res, 200, plan);
+  }
+  if (req.method === 'GET' && url.pathname === '/api/db/status') {
+    return send(res, 200, await db.status());
+  }
+  if (req.method === 'GET' && url.pathname === '/api/plans/recent') {
+    return send(res, 200, await db.recentPlans());
   }
   if (req.method === 'POST' && url.pathname === '/api/coach') {
     const body = await readBody(req);
@@ -177,6 +208,29 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+async function initDatabase() {
+  const connected = await db.connect();
+  if (!connected) {
+    console.log('MongoDB not active - serving in-memory demo data.');
+    return;
+  }
+  try {
+    const cards = getAssignmentCards();
+    await db.seed({
+      profile,
+      calendar,
+      cards,
+      details: cards.map((card) => getAssignmentDetail(card.id)),
+      gaps: getLearningGaps()
+    });
+    const s = await db.status();
+    console.log(`MongoDB connected (db: ${s.db}) - assignments:${s.counts?.assignments} gaps:${s.counts?.gaps} plans:${s.counts?.plans}`);
+  } catch (err) {
+    console.warn('MongoDB seed failed, falling back to in-memory:', err.message);
+  }
+}
+
 server.listen(port, () => {
   console.log(`The Hub is running at http://localhost:${port}`);
+  initDatabase();
 });
