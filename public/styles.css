@@ -493,6 +493,11 @@ main {
   box-shadow: 2px 3px 0 rgba(0,0,0,.18);
 }
 .hero-inner { position: relative; display: grid; grid-template-columns: 1fr 360px; gap: 28px; align-items: center; }
+/* Keep the chalkboard inside the cork board at every width: the no-wrap title needs
+   room, so until there's space for both side by side, stack the chalkboard below it. */
+@media (max-width: 1360px) {
+  .hero-inner { grid-template-columns: 1fr; }
+}
 .eyebrow {
   color: var(--blue);
   font-size: 11px;
