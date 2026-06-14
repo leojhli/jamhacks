@@ -1,8 +1,8 @@
 const now = new Date('2026-06-12T20:00:00-04:00');
 
 const profile = {
-  name: 'Alex Chen',
-  email: 'alex.chen@school.edu',
+  name: 'David Deng',
+  email: 'david.deng@yrdsb.ca',
   grade: 'Grade 12',
   state: 'Busy week, several AP assignments, Chemistry test coming soon, somewhat behind but recoverable.',
   courses: [

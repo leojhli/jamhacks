@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=71">
+  <link rel="stylesheet" href="/styles.css?v=98">
 </head>
 <body>
   <div id="app">
@@ -86,16 +86,15 @@
           </div>
         </div>
         <div class="top-actions">
-          <button class="icon-button" id="notifyBtn" type="button" aria-label="Notifications">N</button>
           <div class="profile-wrap">
             <button class="profile-button" id="profileButton" type="button" aria-expanded="false" aria-controls="profileMenu">
-              <span class="avatar">AC</span>
-              <span class="profile-copy"><strong>Alex Chen</strong><small>Grade 12</small></span>
+              <span class="avatar">DD</span>
+              <span class="profile-copy"><strong>David Deng</strong><small>Grade 12</small></span>
             </button>
             <div class="profile-menu" id="profileMenu" hidden>
               <div id="signedInProfile">
-                <strong>Alex Chen</strong>
-                <small>alex.chen@school.edu</small>
+                <strong>David Deng</strong>
+                <small>david.deng@yrdsb.ca</small>
                 <button type="button" id="syncGoogleBtn">Connect Google Classroom</button>
                 <button type="button" id="signOutBtn">Sign out</button>
               </div>
@@ -122,7 +121,7 @@
       <div class="coach-chips" id="coachChips"></div>
       <div class="coach-input-row">
         <label class="sr-only" for="coachInput">Message Hub Coach</label>
-        <input id="coachInput" placeholder="I have 45 minutes and I'm tired..." autocomplete="off">
+        <input id="coachInput" placeholder="Ask the Coach anything..." autocomplete="off">
         <button class="primary-button" type="submit">Send</button>
       </div>
     </form>
@@ -133,6 +132,6 @@
   </button>
   <div id="sessionRoot"></div>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
-  <script src="/app.js?v=36"></script>
+  <script src="/app.js?v=51"></script>
 </body>
 </html>

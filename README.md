@@ -54,7 +54,7 @@ The Hub generates:
 
 ## Demo Mode
 
-Demo Mode uses Alex Chen, a Grade 12 student with a busy AP week:
+The demo data uses David Deng, a Grade 12 student with a busy AP week:
 
 - AP Calculus BC
 - AP Chemistry

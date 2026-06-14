@@ -35,8 +35,9 @@ const state = {
   signedIn: true,
   profileOpen: false,
   coachOpen: false,
+  coachDemoRunning: false,
   coachMessages: [
-    { role: 'assistant', text: 'How much time do you have, and how tired are you?' }
+    { role: 'assistant', text: 'How may I help you today?' }
   ],
   settings: {
     google: false,
@@ -80,19 +81,80 @@ const goalOptions = [
   ['minimum_viable_night', 'Keep It Light']
 ];
 
-const coachPrompts = [
-  'Plan my night',
-  'Help me start',
-  "I'm behind",
-  "I'm tired",
-  'What should I skip?',
-  'Quiz me',
-  'Explain my mistake',
-  'Make a recovery plan'
+const coachDemos = [
+  {
+    id: 'hints',
+    label: 'Give Me a Hint',
+    messages: [
+      { role: 'user', text: 'Give me some hints.' },
+      { role: 'assistant', text: 'Sure. Send me the question and I will give you one useful hint at a time.' },
+      { role: 'user', text: 'For N₂(g) + 3H₂(g) ⇌ 2NH₃(g), how do I calculate the equilibrium concentration of NH₃?' },
+      { role: 'assistant', text: 'First, write the equilibrium expression: Kc = [NH₃]² ÷ ([N₂][H₂]³). Then set up an ICE table so every concentration change is connected to the same variable, x.' }
+    ]
+  },
+  {
+    id: 'mistake',
+    label: 'Explain My Mistake',
+    messages: [
+      { role: 'user', text: 'Explain my mistake.' },
+      { role: 'assistant', text: 'Send your work and I will point to the first step that went off track.' },
+      { role: 'user', text: 'I wrote Kc = [N₂][H₂]³ ÷ [NH₃]² for N₂ + 3H₂ ⇌ 2NH₃.' },
+      { role: 'assistant', text: 'You reversed the equilibrium expression. Products belong in the numerator and reactants belong in the denominator, so [NH₃]² goes on top.' }
+    ]
+  },
+  {
+    id: 'quiz',
+    label: 'Quiz Me',
+    messages: [
+      { role: 'user', text: 'Quiz me on equilibrium.' },
+      { role: 'assistant', text: 'Quick check: if Q is smaller than K, which direction will the reaction shift?' },
+      { role: 'user', text: 'It shifts left.' },
+      { role: 'assistant', text: 'Almost. When Q < K, there are too few products, so the reaction shifts right to make more products. Remember: small Q, move right.' }
+    ]
+  },
+  {
+    id: 'next-steps',
+    label: 'Show Next Steps',
+    messages: [
+      { role: 'user', text: 'What should I do next?' },
+      { role: 'assistant', text: 'Tell me what you have already completed and I will choose the next useful step.' },
+      { role: 'user', text: 'My titration data table is complete, but I have not started the calculations.' },
+      { role: 'assistant', text: 'Next, calculate the moles of your standard solution using n = C × V. Check that volume is converted to litres before moving to the mole ratio.' }
+    ]
+  },
+  {
+    id: 'start',
+    label: 'Help Me Start',
+    messages: [
+      { role: 'user', text: "I don't know where to start." },
+      { role: 'assistant', text: 'Tell me the assignment and I will give you one small action that creates real progress.' },
+      { role: 'user', text: 'I need to write my AP World History thesis and evidence plan.' },
+      { role: 'assistant', text: 'Start by writing a one-sentence claim that directly answers the prompt. Then place your strongest piece of evidence underneath it and explain how it proves the claim.' }
+    ]
+  },
+  {
+    id: 'skip',
+    label: 'What Can I Skip?',
+    messages: [
+      { role: 'user', text: 'What should I skip tonight?' },
+      { role: 'assistant', text: 'Tell me your available time and deadlines, and I will protect the work that matters most.' },
+      { role: 'user', text: 'I have 45 minutes. The titration lab is due tomorrow, and the economics reading is due next week.' },
+      { role: 'assistant', text: 'Skip the economics reading tonight. Use the 45 minutes to finish the titration calculations and error analysis because that deadline is tomorrow.' }
+    ]
+  }
 ];
 
 const $ = (selector) => document.querySelector(selector);
 const main = $('#main');
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
 
 async function api(path, options = {}) {
   const response = await fetch(`/api${path}`, {
@@ -220,7 +282,29 @@ function pageShell(title, subtitle, content) {
 }
 
 function optionButton(value, label, active, key) {
-  return `<button class="option ${active ? 'active' : ''}" type="button" data-option-key="${key}" data-option="${value}" aria-pressed="${active}">${label}</button>`;
+  return `
+    <button class="option ${active ? 'active' : ''}" type="button" data-option-key="${key}" data-option="${value}" aria-pressed="${active}">
+      <span class="option-fill" aria-hidden="true"></span>
+      <span class="option-label">${label}</span>
+    </button>
+  `;
+}
+
+function planSelectionsReady() {
+  const minutes = state.time === 'custom' ? Number(state.customTime) : Number(state.time);
+  return Number.isFinite(minutes)
+    && minutes >= 15
+    && minutes <= 240
+    && energyOptions.some(([id]) => id === state.energy)
+    && goalOptions.some(([id]) => id === state.goal);
+}
+
+function updatePlanSubmitState() {
+  const button = document.querySelector('[data-plan-submit]');
+  if (!button) return;
+  const ready = planSelectionsReady();
+  button.classList.toggle('is-ready', ready);
+  button.dataset.ready = String(ready);
 }
 
 function updatePlanOptions(key) {
@@ -234,11 +318,48 @@ function updatePlanOptions(key) {
   if (key === 'time') {
     document.querySelector('.custom-row')?.classList.toggle('open', state.time === 'custom');
   }
+  updatePlanSubmitState();
 }
 
 // Pixel-art charms pinned to the cork board for flair.
 const grapeCharm = '<svg viewBox="0 0 12 13" width="46" height="50" shape-rendering="crispEdges"><rect x="5" y="0" width="1" height="2" fill="#6b4a2a"/><rect x="6" y="0" width="2" height="1" fill="#5fae3f"/><rect x="7" y="1" width="1" height="1" fill="#5fae3f"/><rect x="3" y="2" width="6" height="1" fill="#7c4dbe"/><rect x="2" y="3" width="8" height="6" fill="#7c4dbe"/><rect x="2" y="3" width="1" height="3" fill="#9d6fe0"/><rect x="3" y="9" width="6" height="1" fill="#5e379c"/><rect x="4" y="10" width="4" height="1" fill="#5e379c"/><rect x="4" y="4" width="1" height="2" fill="#fff"/><rect x="7" y="4" width="1" height="2" fill="#fff"/><rect x="4" y="5" width="1" height="1" fill="#2a1840"/><rect x="7" y="5" width="1" height="1" fill="#2a1840"/><rect x="5" y="7" width="2" height="1" fill="#2a1840"/></svg>';
 const catCharm = '<svg viewBox="0 0 12 12" width="46" height="46" shape-rendering="crispEdges"><rect x="2" y="1" width="2" height="2" fill="#7c4dbe"/><rect x="8" y="1" width="2" height="2" fill="#7c4dbe"/><rect x="2" y="2" width="1" height="1" fill="#ff9fbf"/><rect x="9" y="2" width="1" height="1" fill="#ff9fbf"/><rect x="2" y="3" width="8" height="7" fill="#7c4dbe"/><rect x="2" y="3" width="1" height="2" fill="#9d6fe0"/><rect x="4" y="5" width="1" height="2" fill="#fff"/><rect x="7" y="5" width="1" height="2" fill="#fff"/><rect x="4" y="6" width="1" height="1" fill="#2a1840"/><rect x="7" y="6" width="1" height="1" fill="#2a1840"/><rect x="5" y="7" width="2" height="1" fill="#ff9fbf"/><rect x="10" y="6" width="1" height="3" fill="#7c4dbe"/><rect x="3" y="10" width="2" height="1" fill="#5e379c"/><rect x="7" y="10" width="2" height="1" fill="#5e379c"/></svg>';
+
+function constructionPaperTitle(text) {
+  const colors = ['#d05b70', '#e7c147', '#557fc4', '#88b45f', '#df829c', '#da8845', '#896ac4', '#49aa9e'];
+  const rotations = [-5, 2.8, -1.6, 4.2, -3.4, 1.5, -4.6, 3.2, -2.1, 4.8, -3];
+  const offsets = [2, -5, 4, -2, 6, -4, 1, -6, 4, -1, 5];
+  const scales = [1.03, .96, 1.05, .98, 1.02, .95, 1.04, .97, 1.03, .98, 1.01];
+  return [...text].map((letter, index) => {
+    if (letter === ' ') return '<span class="paper-letter-space" aria-hidden="true"></span>';
+    const id = `paper-letter-${index}`;
+    const color = colors[index % colors.length];
+    const rotation = rotations[index % rotations.length];
+    const offset = offsets[index % offsets.length];
+    const scale = scales[index % scales.length];
+    return `
+      <span class="paper-letter" aria-hidden="true" style="--paper-rotation:${rotation}deg;--paper-offset:${offset}px;--paper-scale:${scale}">
+        <svg viewBox="0 0 58 72" focusable="false">
+          <defs>
+            <clipPath id="${id}">
+              <text x="29" y="59" text-anchor="middle" class="paper-letter-shape">${letter}</text>
+            </clipPath>
+          </defs>
+          <text x="29" y="59" text-anchor="middle" class="paper-letter-shadow">${letter}</text>
+          <g clip-path="url(#${id})">
+            <rect width="58" height="72" fill="${color}"></rect>
+            <path d="M-4 46 L62 30" class="paper-fold"></path>
+            <path d="M8 4 L44 70" class="paper-fiber"></path>
+            <circle cx="15" cy="17" r="1.2" class="paper-speck"></circle>
+            <circle cx="42" cy="26" r=".9" class="paper-speck"></circle>
+            <circle cx="22" cy="56" r="1" class="paper-speck"></circle>
+            <circle cx="48" cy="61" r=".7" class="paper-speck"></circle>
+          </g>
+        </svg>
+      </span>
+    `;
+  }).join('');
+}
 
 function renderPlanPage() {
   const output = state.loadingPlan ? loadingPlan() : state.plan ? planOutput(state.plan) : planCalendarBoard();
@@ -247,8 +368,7 @@ function renderPlanPage() {
       <div class="hero">
         <div class="hero-inner">
           <div>
-            <div class="eyebrow">Tonight</div>
-            <h1>Plan My Night</h1>
+            <h1 class="construction-title" aria-label="Plan My Night">${constructionPaperTitle('PLAN MY NIGHT')}</h1>
             <p>Choose your time, energy, and goal. Get a plan you can finish.</p>
           </div>
           <div class="decision-card">
@@ -290,7 +410,7 @@ function renderPlanPage() {
               ${goalOptions.map(([id, label]) => optionButton(id, label, state.goal === id, 'goal')).join('')}
             </div>
           </fieldset>
-          <button class="primary-button wide" type="submit" ${state.loadingPlan ? 'disabled aria-busy="true"' : ''}>${state.loadingPlan ? 'Building...' : 'Build My Plan'}</button>
+          <button class="primary-button wide plan-submit ${planSelectionsReady() ? 'is-ready' : ''}" data-plan-submit data-ready="${planSelectionsReady()}" type="submit" ${state.loadingPlan ? 'disabled aria-busy="true"' : ''}>${state.loadingPlan ? 'Building...' : 'Build My Plan'}</button>
         </form>
         <div class="output-stack" aria-live="polite" aria-busy="${state.loadingPlan}">${output}</div>
       </div>
@@ -898,7 +1018,7 @@ function assignmentDetail(item) {
       </div>
       <div class="mini-box" style="margin-top:12px">
         <strong>Milestones</strong>
-        ${list(intelligence.milestones.map((m) => `${m.done ? 'Done' : 'Todo'}: ${m.label}`))}
+        ${list(intelligence.milestones.map((m) => `${m.done ? 'Done' : 'To-do'}: ${m.label}`))}
       </div>
       <div class="mini-box" style="margin-top:12px;background:var(--teal-soft)">
         <strong>Recommended Actions</strong>
@@ -943,9 +1063,17 @@ async function selectAssignment(id) {
 function renderGapsPage() {
   main.innerHTML = pageShell('Learning Gaps', 'See which topics need work before the next deadline.', `
     <div class="two-col">
-      ${state.gaps.map((gap) => `
+      ${state.gaps.map((gap) => {
+        const mastery = Math.max(0, Math.min(100, Number(gap.mastery) || 0));
+        return `
         <article class="gap-card sev-${gap.mastery < 50 ? 'red' : gap.mastery < 65 ? 'amber' : 'green'}">
-          <div class="mastery-orb">${gap.mastery}%</div>
+          <div class="mastery-orb" role="progressbar" aria-label="${gap.topic} mastery" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${mastery}" style="--mastery:${mastery}">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle class="mastery-track" cx="40" cy="40" r="34" pathLength="100"></circle>
+              <circle class="mastery-fill" cx="40" cy="40" r="34" pathLength="100"></circle>
+            </svg>
+            <span>${mastery}%</span>
+          </div>
           <div>
             <div class="chip-row">${chip(gap.course, courseClass(gap.course))}${abilityChip(gap.mastery)}</div>
             <h3>${gap.topic}</h3>
@@ -956,7 +1084,8 @@ function renderGapsPage() {
             ${gap.linkedAssignment ? `<p><strong>Linked assignment:</strong> ${gap.linkedAssignment.title} - ${gap.linkedAssignment.dueLabel}</p>` : ''}
           </div>
         </article>
-      `).join('')}
+      `;
+      }).join('')}
     </div>
   `);
 }
@@ -1086,9 +1215,28 @@ function renderCoach() {
   $('#coachPanel').hidden = !state.coachOpen;
   $('#coachFab').setAttribute('aria-expanded', String(state.coachOpen));
   $('#coachLog').innerHTML = state.coachMessages.map((message) => `
-    <div class="message ${message.role === 'user' ? 'user' : ''}">${message.text}</div>
+    <div class="message ${message.role === 'user' ? 'user' : ''}">${escapeHtml(message.text)}</div>
   `).join('');
-  $('#coachChips').innerHTML = coachPrompts.map((prompt) => `<button type="button" data-coach-prompt="${prompt}">${prompt}</button>`).join('');
+  $('#coachChips').innerHTML = coachDemos.map((demo) => `
+    <button type="button" data-coach-demo="${demo.id}" ${state.coachDemoRunning ? 'disabled' : ''}>${demo.label}</button>
+  `).join('');
+  const log = $('#coachLog');
+  requestAnimationFrame(() => { log.scrollTop = log.scrollHeight; });
+}
+
+async function runCoachDemo(id) {
+  if (state.coachDemoRunning) return;
+  const demo = coachDemos.find((item) => item.id === id);
+  if (!demo) return;
+  state.coachDemoRunning = true;
+  renderCoach();
+  for (const message of demo.messages) {
+    state.coachMessages.push(message);
+    renderCoach();
+    await new Promise((resolve) => setTimeout(resolve, message.role === 'assistant' ? 520 : 360));
+  }
+  state.coachDemoRunning = false;
+  renderCoach();
 }
 
 async function generatePlan() {
@@ -1303,16 +1451,16 @@ document.addEventListener('click', (event) => {
     render();
   }
 
-  const promptBtn = event.target.closest('[data-coach-prompt]');
-  if (promptBtn) {
-    $('#coachInput').value = promptBtn.dataset.coachPrompt;
-    $('#coachInput').focus();
+  const coachDemoBtn = event.target.closest('[data-coach-demo]');
+  if (coachDemoBtn) {
+    runCoachDemo(coachDemoBtn.dataset.coachDemo);
   }
 });
 
 document.addEventListener('input', (event) => {
   if (event.target.id === 'customTimeInput') {
     state.customTime = Number(event.target.value || 75);
+    updatePlanSubmitState();
   }
 });
 
@@ -1335,7 +1483,6 @@ $('#profileButton').addEventListener('click', () => {
   renderProfile();
   renderCoach();
 });
-$('#notifyBtn').addEventListener('click', () => toast('No new alerts. Chemistry still needs attention tonight.'));
 $('#syncGoogleBtn').addEventListener('click', () => {
   if (state.classroom.connected) disconnectGoogle();
   else connectGoogle();
