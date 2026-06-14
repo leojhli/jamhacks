@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Geist:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=50">
+  <link rel="stylesheet" href="/styles.css?v=56">
 </head>
 <body>
   <div id="app">
@@ -17,13 +17,64 @@
         <div><strong>The Hub</strong><small>Calm planning</small></div>
       </div>
       <nav id="nav" class="nav"></nav>
+      <div class="pixel-buddy" aria-hidden="true">
+        <div class="pb-speech">
+          <span>lock in lil bro</span>
+          <span>get to work buddy</span>
+          <span>stop scrolling &#128128;</span>
+          <span>the grind don't stop</span>
+          <span>no excuses, study!</span>
+        </div>
+        <span class="pb-note pb-note-1">&#9834;</span>
+        <span class="pb-note pb-note-2">&#9835;</span>
+        <svg class="pixel-dancer" viewBox="0 0 14 16" width="66" height="76" shape-rendering="crispEdges">
+          <g>
+            <rect x="6" y="0" width="1" height="2" fill="#6b4a2a"/>
+            <rect x="7" y="0" width="2" height="1" fill="#5fae3f"/>
+            <rect x="8" y="1" width="1" height="1" fill="#5fae3f"/>
+            <rect x="4" y="2" width="6" height="1" fill="#7c4dbe"/>
+            <rect x="3" y="3" width="8" height="7" fill="#7c4dbe"/>
+            <rect x="3" y="10" width="8" height="1" fill="#5e379c"/>
+            <rect x="4" y="11" width="6" height="1" fill="#5e379c"/>
+            <rect x="3" y="3" width="1" height="3" fill="#9d6fe0"/>
+            <rect x="4" y="2" width="2" height="1" fill="#9d6fe0"/>
+            <rect x="5" y="4" width="1" height="2" fill="#ffffff"/>
+            <rect x="8" y="4" width="1" height="2" fill="#ffffff"/>
+            <rect x="5" y="5" width="1" height="1" fill="#2a1840"/>
+            <rect x="8" y="5" width="1" height="1" fill="#2a1840"/>
+            <rect x="4" y="7" width="1" height="1" fill="#ff8fb0"/>
+            <rect x="9" y="7" width="1" height="1" fill="#ff8fb0"/>
+            <rect x="6" y="8" width="2" height="1" fill="#2a1840"/>
+          </g>
+          <g class="pd-frame pd-a">
+            <rect x="2" y="3" width="1" height="1" fill="#7c4dbe"/>
+            <rect x="1" y="2" width="1" height="1" fill="#9d6fe0"/>
+            <rect x="11" y="6" width="1" height="1" fill="#7c4dbe"/>
+            <rect x="12" y="7" width="1" height="1" fill="#7c4dbe"/>
+            <rect x="4" y="12" width="1" height="2" fill="#7c4dbe"/>
+            <rect x="9" y="12" width="1" height="2" fill="#7c4dbe"/>
+            <rect x="3" y="14" width="2" height="1" fill="#3d2566"/>
+            <rect x="9" y="14" width="2" height="1" fill="#3d2566"/>
+          </g>
+          <g class="pd-frame pd-b">
+            <rect x="2" y="6" width="1" height="1" fill="#7c4dbe"/>
+            <rect x="1" y="7" width="1" height="1" fill="#7c4dbe"/>
+            <rect x="11" y="3" width="1" height="1" fill="#7c4dbe"/>
+            <rect x="12" y="2" width="1" height="1" fill="#9d6fe0"/>
+            <rect x="5" y="12" width="1" height="2" fill="#7c4dbe"/>
+            <rect x="8" y="12" width="1" height="2" fill="#7c4dbe"/>
+            <rect x="4" y="14" width="2" height="1" fill="#3d2566"/>
+            <rect x="8" y="14" width="2" height="1" fill="#3d2566"/>
+          </g>
+        </svg>
+      </div>
     </aside>
 
     <div class="workspace">
       <header class="topbar">
         <label class="search">
           <span>Search</span>
-          <input id="searchInput" placeholder="Search The Hub" autocomplete="off">
+          <input id="searchInput" placeholder="Find a page..." autocomplete="off">
         </label>
         <div class="tonight-progress" id="tonightProgress" hidden>
           <div class="tonight-progress-copy">
@@ -82,6 +133,6 @@
   </button>
   <div id="sessionRoot"></div>
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
-  <script src="/app.js?v=28"></script>
+  <script src="/app.js?v=31"></script>
 </body>
 </html>

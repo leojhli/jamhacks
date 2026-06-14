@@ -12,7 +12,7 @@ const goalProfiles = {
   stay_on_track: { label: 'Stay on Track', dueWeight: 1.2, masteryWeight: 1, completionWeight: 1 },
   catch_up: { label: 'Catch Up', dueWeight: 1.1, masteryWeight: 1, completionWeight: 1.45 },
   get_ahead: { label: 'Get Ahead', dueWeight: 0.8, masteryWeight: 1.25, completionWeight: 1.1, safeBoost: 105 },
-  minimum_viable_night: { label: 'Minimum Viable Night', dueWeight: 1.35, masteryWeight: 0.75, completionWeight: 0.85, recovery: true }
+  minimum_viable_night: { label: 'Keep It Light', dueWeight: 1.35, masteryWeight: 0.75, completionWeight: 0.85, recovery: true }
 };
 
 function zoneMultiplier(zone) {

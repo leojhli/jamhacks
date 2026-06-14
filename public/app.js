@@ -1,9 +1,9 @@
 const state = {
   page: 'plan',
-  time: 60,
+  time: null,
   customTime: 75,
-  energy: 'tired',
-  goal: 'stay_on_track',
+  energy: null,
+  goal: null,
   selectedAssignment: null,
   plan: null,
   loadingPlan: false,
@@ -76,7 +76,7 @@ const goalOptions = [
   ['stay_on_track', 'Stay on Track'],
   ['catch_up', 'Catch Up'],
   ['get_ahead', 'Get Ahead'],
-  ['minimum_viable_night', 'Minimum Viable Night']
+  ['minimum_viable_night', 'Keep It Light']
 ];
 
 const coachPrompts = [
@@ -754,6 +754,29 @@ function sessionGo(index) {
   sessionRoot.querySelector('.session-stage')?.focus();
 }
 
+// When a cut/grow animation finishes, tidy up the pencil in place rather than
+// re-rendering the whole overlay (a full re-render causes a visible blink).
+// The sharpener has already faded to opacity 0 and the pencil is held at its
+// final width via `forwards`, so this is visually seamless.
+function finishSharpen() {
+  state.session.sharpening = false;
+  const pencil = sessionRoot?.querySelector('.pencil');
+  if (!pencil) return;
+  pencil.classList.remove('is-sharpening');
+  pencil.querySelector('.sharpener')?.remove();
+  const totalMinutes = (state.plan?.plan || []).reduce((sum, item) => sum + item.minutes, 0);
+  const spent = totalMinutes ? sessionProgressMinutes() / totalMinutes >= 0.999 : false;
+  if (spent) {
+    pencil.classList.add('spent');
+    sessionRoot.querySelector('.pencil-eraser')?.remove();
+  }
+}
+
+function finishGrow() {
+  state.session.growing = false;
+  sessionRoot?.querySelector('.pencil')?.classList.remove('is-growing');
+}
+
 function sessionNext() {
   const current = state.session.steps[state.session.index];
   const next = state.session.steps[state.session.index + 1];
@@ -775,10 +798,7 @@ function sessionNext() {
       state.session.growing = false;
       clearTimeout(state.session.sharpenTimer);
       clearTimeout(state.session.growTimer);
-      state.session.sharpenTimer = setTimeout(() => {
-        state.session.sharpening = false;
-        renderSession();
-      }, 2400);
+      state.session.sharpenTimer = setTimeout(finishSharpen, 2400);
     }
   }
 
@@ -804,10 +824,7 @@ function sessionBack() {
       state.session.growing = true;
       clearTimeout(state.session.sharpenTimer);
       clearTimeout(state.session.growTimer);
-      state.session.growTimer = setTimeout(() => {
-        state.session.growing = false;
-        renderSession();
-      }, 650);
+      state.session.growTimer = setTimeout(finishGrow, 650);
     }
   }
 
@@ -1030,10 +1047,22 @@ function renderCoach() {
 }
 
 async function generatePlan() {
+  if (!state.time) {
+    toast('Pick how much time you have');
+    return;
+  }
   const minutes = state.time === 'custom' ? Number(state.customTime) : Number(state.time);
   if (!Number.isFinite(minutes) || minutes < 15 || minutes > 240) {
     toast('Choose a time between 15 and 240 minutes');
     $('#customTimeInput')?.focus();
+    return;
+  }
+  if (!state.energy) {
+    toast('Pick your energy level');
+    return;
+  }
+  if (!state.goal) {
+    toast("Pick tonight's goal");
     return;
   }
   state.loadingPlan = true;
