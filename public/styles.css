@@ -596,6 +596,10 @@ p { text-wrap: pretty; }
   min-height: 260px;
   padding: clamp(28px, 4vw, 46px);
 }
+.plan-page.plan-ready .next-action > .eyebrow {
+  font-size: 14px;
+  letter-spacing: .1em;
+}
 .plan-page.plan-ready .next-action h2 {
   font-size: clamp(42px, 5vw, 72px);
   max-width: 900px;
@@ -623,8 +627,8 @@ p { text-wrap: pretty; }
   border-left-width: 8px;
 }
 .plan-page.plan-ready .plan-item-summary {
-  grid-template-columns: 76px 1fr auto;
-  gap: 20px;
+  grid-template-columns: 92px 1fr auto;
+  gap: 24px;
 }
 .plan-page.plan-ready .plan-item h3 {
   font-size: clamp(34px, 4.2vw, 58px);
@@ -636,12 +640,13 @@ p { text-wrap: pretty; }
   font-size: 16px;
 }
 .plan-page.plan-ready .time-chip {
-  width: 76px;
-  height: 76px;
-  font-size: 18px;
+  width: 92px;
+  height: 92px;
+  font-size: 21px;
+  line-height: 1.25;
 }
 .plan-page.plan-ready .plan-quick-summary {
-  margin-left: 96px;
+  margin-left: 116px;
   font-size: 17px;
 }
 .calendar-board {
@@ -772,7 +777,10 @@ p { text-wrap: pretty; }
   border-radius: 8px 8px 0 0;
 }
 .plan-context::after { display: none; }
-.plan-context summary { color: #4a3712; }
+.plan-context-title {
+  color: #4a3712;
+  margin-bottom: 0;
+}
 
 /* Calendar card = wall calendar */
 .card:has(.timeline):not(.plan-context) { padding-top: 44px; }
@@ -1183,11 +1191,6 @@ p { text-wrap: pretty; }
 .mini-box:hover { transform: rotate(0deg) translateY(-4px); box-shadow: 6px 9px 0 rgba(30,30,40,.2); }
 .mini-box strong { font-family: var(--hand); font-size: 19px; letter-spacing: 0; }
 .mini-box p, .mini-box ul, .mini-box li { color: inherit; }
-.plan-context summary {
-  cursor: pointer;
-  font-weight: 850;
-  color: var(--ink);
-}
 .plan-context-grid { margin-top: 18px; align-items: start; }
 .plan-context-grid > div { display: grid; gap: 14px; }
 .mini-box ul { margin: 10px 0 0; padding-left: 18px; line-height: 1.55; }
@@ -1683,8 +1686,9 @@ p { text-wrap: pretty; }
     margin-left: 0;
   }
   .plan-page.plan-ready .time-chip {
-    width: 64px;
-    height: 64px;
+    width: 76px;
+    height: 76px;
+    font-size: 18px;
   }
   .calendar-preview-list .timeline-item {
     grid-template-columns: 1fr;

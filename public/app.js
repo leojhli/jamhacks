@@ -354,7 +354,6 @@ function planOutput(result) {
       <div class="eyebrow" style="color:#8cf0de">Start here</div>
       <h2>${result.nextBestAction.title}</h2>
       <p><strong>${result.nextBestAction.minutes} minutes</strong> - ${result.nextBestAction.why}</p>
-      <button class="ghost-button" data-start-activity="${result.plan[0].id}" data-start-step="${escapeAttr(result.justStart.step)}" type="button" aria-pressed="${state.startedActivities.includes(result.plan[0].id)}">${state.startedActivities.includes(result.plan[0].id) ? 'Started' : 'Just Start'}</button>
     </div>
     <div class="card whiteboard">
       <div class="section-head">
@@ -382,8 +381,8 @@ function planOutput(result) {
       </div>
       <button class="primary-button wide session-start" data-session-open type="button">Start Session &rarr;</button>
     </div>
-    <details class="card plan-context">
-      <summary>More context for tonight</summary>
+    <section class="card plan-context">
+      <h2 class="plan-context-title">More context for tonight</h2>
       <div class="two-col plan-context-grid">
         <div>
           <h3>What not to do tonight</h3>
@@ -402,13 +401,9 @@ function planOutput(result) {
           </div>
         </div>
       </div>
-    </details>
+    </section>
     ${recovery}
   `;
-}
-
-function escapeAttr(text) {
-  return String(text).replace(/"/g, '&quot;');
 }
 
 /* ============================================================
@@ -1238,15 +1233,6 @@ document.addEventListener('click', (event) => {
     render();
     main.focus();
     return;
-  }
-
-  const startBtn = event.target.closest('[data-start-activity]');
-  if (startBtn) {
-    const id = startBtn.dataset.startActivity;
-    if (!state.startedActivities.includes(id)) state.startedActivities.push(id);
-    renderTonightProgress();
-    if (state.page === 'plan') renderPlanPage();
-    toast(startBtn.dataset.startStep);
   }
 
   if (event.target.closest('[data-google-connect]')) { connectGoogle(); return; }
